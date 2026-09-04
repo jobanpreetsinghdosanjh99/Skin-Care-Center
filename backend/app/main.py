@@ -1,9 +1,10 @@
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routers import clinics, diseases, medicines, patients, prescriptions, settings
+from app.auth import get_current_user_id
+from app.routers import auth, clinics, diseases, medicines, patients, prescriptions, settings
 
 
 @asynccontextmanager
@@ -28,12 +29,19 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(clinics.router)
-app.include_router(patients.router)
-app.include_router(medicines.router)
-app.include_router(diseases.router)
-app.include_router(prescriptions.router)
-app.include_router(settings.router)
+# Every data router requires a valid login session (bearer token) except
+# /auth/login itself and /health — this is what actually enforces the
+# login screen instead of leaving the API fully open to anyone who knows
+# the URL.
+_auth_required = [Depends(get_current_user_id)]
+
+app.include_router(auth.router)
+app.include_router(clinics.router, dependencies=_auth_required)
+app.include_router(patients.router, dependencies=_auth_required)
+app.include_router(medicines.router, dependencies=_auth_required)
+app.include_router(diseases.router, dependencies=_auth_required)
+app.include_router(prescriptions.router, dependencies=_auth_required)
+app.include_router(settings.router, dependencies=_auth_required)
 
 
 @app.get("/health", tags=["system"])

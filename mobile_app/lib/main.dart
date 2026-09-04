@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 
 import 'screens/create_prescription_page.dart';
 import 'screens/diseases_page.dart';
+import 'screens/login_page.dart';
 import 'screens/medicines_page.dart';
 import 'screens/patients_page.dart';
 import 'screens/settings_page.dart';
+import 'services/api_client.dart';
+import 'services/auth_api.dart';
 import 'theme/app_theme.dart';
 import 'widgets/common.dart';
 
@@ -21,7 +24,64 @@ class MainApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'Skin Care Centre',
       theme: AppTheme.light,
-      home: const ClinicShell(),
+      home: const AuthGate(),
+    );
+  }
+}
+
+/// Restores any saved session on startup, then shows [LoginPage] until the
+/// user signs in, after which it shows the main [ClinicShell]. Also listens
+/// for forced logouts (explicit logout, or a 401 from an expired/invalid
+/// token) so the app always falls back to the login screen instead of
+/// leaving the user stuck on a broken/empty screen.
+class AuthGate extends StatefulWidget {
+  const AuthGate({super.key});
+
+  @override
+  State<AuthGate> createState() => _AuthGateState();
+}
+
+class _AuthGateState extends State<AuthGate> {
+  final _authApi = AuthApi();
+  late Future<bool> _restoreFuture;
+  bool _loggedIn = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _restoreFuture = _authApi.restoreSession().then((restored) {
+      if (mounted) setState(() => _loggedIn = restored);
+      return restored;
+    });
+    AuthSession.loggedOut.addListener(_onLoggedOut);
+  }
+
+  @override
+  void dispose() {
+    AuthSession.loggedOut.removeListener(_onLoggedOut);
+    super.dispose();
+  }
+
+  void _onLoggedOut() {
+    if (mounted) setState(() => _loggedIn = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_loggedIn) {
+      return ClinicShell(key: ValueKey(AuthSession.token));
+    }
+    return FutureBuilder<bool>(
+      future: _restoreFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return const Scaffold(
+            backgroundColor: AppTheme.background,
+            body: Center(child: AppLoader()),
+          );
+        }
+        return LoginPage(onLoggedIn: () => setState(() => _loggedIn = true));
+      },
     );
   }
 }

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../models/footer_note.dart';
+import '../services/api_client.dart';
+import '../services/auth_api.dart';
 import '../services/clinic_scope.dart';
 import '../services/clinics_api.dart';
 import '../services/settings_api.dart';
@@ -50,6 +52,31 @@ class _SettingsPageState extends State<SettingsPage> {
     setState(() {
       _clinicsFuture = _clinicsApi.list();
     });
+  }
+
+  Future<void> _confirmLogout() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Log Out'),
+        content: const Text('Are you sure you want to log out?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: FilledButton.styleFrom(backgroundColor: AppTheme.danger),
+            child: const Text('Log Out'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      await AuthApi().logout();
+      AuthSession.loggedOut.notify();
+    }
   }
 
   Future<void> _openChangePasswordDialog() async {
@@ -748,6 +775,22 @@ class _SettingsPageState extends State<SettingsPage> {
                     },
                   ),
                 ],
+              ),
+            ),
+            const SizedBox(height: AppSpacing.md),
+            _SettingsSection(
+              icon: Icons.logout_rounded,
+              iconColor: AppTheme.danger,
+              title: 'Session',
+              description: 'Sign out of your account on this device.',
+              child: OutlinedButton.icon(
+                onPressed: _confirmLogout,
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppTheme.danger,
+                  side: const BorderSide(color: AppTheme.danger),
+                ),
+                icon: const Icon(Icons.logout_rounded, size: 18),
+                label: const Text('Log Out'),
               ),
             ),
           ],

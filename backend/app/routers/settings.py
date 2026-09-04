@@ -1,4 +1,3 @@
-import hashlib
 import uuid
 
 from fastapi import APIRouter, HTTPException
@@ -13,31 +12,17 @@ from app.schemas.settings import (
     FooterNoteUpdate,
     PasswordChange,
 )
+from app.users import get_or_create_default_user, hash_password
 
 router = APIRouter(prefix="/settings", tags=["settings"])
 
 
-def _hash_password(password: str) -> str:
-    return hashlib.sha256(password.encode("utf-8")).hexdigest()
-
-
 def _get_or_create_default_user(conn, clinic_id: uuid.UUID) -> dict:
-    row = conn.execute(
-        "SELECT * FROM users WHERE clinic_id = %s ORDER BY created_at LIMIT 1",
-        (clinic_id,),
-    ).fetchone()
-    if row:
-        return row
+    return get_or_create_default_user(conn, clinic_id)
 
-    row = conn.execute(
-        """
-        INSERT INTO users (clinic_id, full_name, email, password_hash, role)
-        VALUES (%s, 'Doctor', 'doctor@clinic.local', %s, 'doctor')
-        RETURNING *
-        """,
-        (clinic_id, _hash_password("changeme123")),
-    ).fetchone()
-    return row
+
+def _hash_password(password: str) -> str:
+    return hash_password(password)
 
 
 @router.get("/me", response_model=dict)

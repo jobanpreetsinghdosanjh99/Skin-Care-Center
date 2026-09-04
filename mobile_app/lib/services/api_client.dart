@@ -9,9 +9,46 @@ class ApiConfig {
   );
 }
 
+/// Holds the current session's bearer token in memory (and mirrors it to
+/// persistent storage via [AuthApi]) so every [ApiClient] call can attach
+/// `Authorization: Bearer <token>` without threading it through every
+/// screen/widget individually.
+class AuthSession {
+  AuthSession._();
+
+  static String? _token;
+
+  static String? get token => _token;
+
+  static bool get isLoggedIn => _token != null && _token!.isNotEmpty;
+
+  static void setToken(String? token) {
+    _token = token;
+  }
+
+  /// Fired whenever the session becomes unauthenticated (explicit logout or
+  /// a 401 from the backend), so the UI can drop back to the login screen.
+  static final loggedOut = _LoggedOutSignal();
+}
+
+class _LoggedOutSignal {
+  final List<void Function()> _listeners = [];
+
+  void addListener(void Function() listener) => _listeners.add(listener);
+
+  void removeListener(void Function() listener) => _listeners.remove(listener);
+
+  void notify() {
+    for (final listener in List.of(_listeners)) {
+      listener();
+    }
+  }
+}
+
 class ApiException implements Exception {
-  ApiException(this.message);
+  ApiException(this.message, {this.statusCode});
   final String message;
+  final int? statusCode;
 
   @override
   String toString() => message;
@@ -25,8 +62,18 @@ class ApiClient {
   Uri uri(String path, [Map<String, String>? query]) =>
       Uri.parse('${ApiConfig.baseUrl}$path').replace(queryParameters: query);
 
+  Map<String, String> _headers({bool json = false}) {
+    final headers = <String, String>{};
+    if (json) headers['Content-Type'] = 'application/json';
+    final token = AuthSession.token;
+    if (token != null && token.isNotEmpty) {
+      headers['Authorization'] = 'Bearer $token';
+    }
+    return headers;
+  }
+
   Future<dynamic> get(String path, [Map<String, String>? query]) async {
-    final response = await _client.get(uri(path, query));
+    final response = await _client.get(uri(path, query), headers: _headers());
     _ensureOk(response);
     return response.body.isEmpty ? null : jsonDecode(response.body);
   }
@@ -38,7 +85,7 @@ class ApiClient {
   }) async {
     final response = await _client.post(
       uri(path),
-      headers: {'Content-Type': 'application/json'},
+      headers: _headers(json: true),
       body: jsonEncode(body),
     );
     _ensureOk(response, expected: expected);
@@ -48,7 +95,7 @@ class ApiClient {
   Future<dynamic> put(String path, Map<String, dynamic> body) async {
     final response = await _client.put(
       uri(path),
-      headers: {'Content-Type': 'application/json'},
+      headers: _headers(json: true),
       body: jsonEncode(body),
     );
     _ensureOk(response);
@@ -56,14 +103,19 @@ class ApiClient {
   }
 
   Future<void> delete(String path) async {
-    final response = await _client.delete(uri(path));
+    final response = await _client.delete(uri(path), headers: _headers());
     _ensureOk(response, expected: 204);
   }
 
   void _ensureOk(http.Response response, {int expected = 200}) {
+    if (response.statusCode == 401) {
+      AuthSession.setToken(null);
+      AuthSession.loggedOut.notify();
+    }
     if (response.statusCode != expected) {
       throw ApiException(
         'Request failed (${response.statusCode}): ${response.body}',
+        statusCode: response.statusCode,
       );
     }
   }
