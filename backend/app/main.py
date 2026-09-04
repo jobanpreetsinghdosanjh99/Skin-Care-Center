@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routers import diseases, medicines, patients, prescriptions, settings
+from app.routers import clinics, diseases, medicines, patients, prescriptions, settings
 
 
 @asynccontextmanager
@@ -28,6 +28,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(clinics.router)
 app.include_router(patients.router)
 app.include_router(medicines.router)
 app.include_router(diseases.router)

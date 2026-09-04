@@ -48,6 +48,49 @@ class _PatientsPageState extends State<PatientsPage> {
     if (created == true) _refresh();
   }
 
+  Future<void> _openEditPatientDialog(Patient patient) async {
+    final updated = await showDialog<bool>(
+      context: context,
+      builder: (_) => _AddPatientDialog(patient: patient),
+    );
+    if (updated == true) _refresh();
+  }
+
+  Future<void> _confirmDeletePatient(Patient patient) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Patient'),
+        content: Text(
+          'Are you sure you want to delete "${patient.fullName.toTitleCase}"? '
+          'This cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: AppTheme.danger),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    try {
+      await _api.delete(patient.id);
+      _refresh();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to delete: $e')));
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return SafeArea(
@@ -114,13 +157,55 @@ class _PatientsPageState extends State<PatientsPage> {
                             patient.fullName.toTitleCase,
                             style: const TextStyle(fontWeight: FontWeight.w600),
                           ),
-                          subtitle: Text(
-                            '${patient.ageYears ?? '-'} yrs • '
-                            '${patient.gender.toTitleCase} • ${patient.phone}',
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                '${patient.ageYears ?? '-'} yrs • '
+                                '${patient.gender.toTitleCase} • ${patient.phone}',
+                              ),
+                              if ((patient.address ?? '').isNotEmpty)
+                                Text(
+                                  patient.address!.toSentenceCase,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              Text(
+                                'Registered: ${patient.createdAt.day.toString().padLeft(2, '0')}/'
+                                '${patient.createdAt.month.toString().padLeft(2, '0')}/'
+                                '${patient.createdAt.year}',
+                                style: Theme.of(context).textTheme.bodySmall,
+                              ),
+                            ],
                           ),
-                          trailing: StatusPill(
-                            label: patient.patientNumber,
-                            color: AppTheme.primary,
+                          isThreeLine: (patient.address ?? '').isNotEmpty,
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              StatusPill(
+                                label: patient.patientNumber,
+                                color: AppTheme.primary,
+                              ),
+                              const SizedBox(width: 8),
+                              IconButton(
+                                onPressed: () =>
+                                    _openEditPatientDialog(patient),
+                                icon: const Icon(Icons.edit_outlined, size: 18),
+                                tooltip: 'Edit',
+                                visualDensity: VisualDensity.compact,
+                              ),
+                              IconButton(
+                                onPressed: () => _confirmDeletePatient(patient),
+                                icon: Icon(
+                                  Icons.delete_outline,
+                                  size: 18,
+                                  color: AppTheme.danger,
+                                ),
+                                tooltip: 'Delete',
+                                visualDensity: VisualDensity.compact,
+                              ),
+                            ],
                           ),
                         );
                       },
@@ -203,7 +288,9 @@ class _SearchBar extends StatelessWidget {
 }
 
 class _AddPatientDialog extends StatefulWidget {
-  const _AddPatientDialog();
+  const _AddPatientDialog({this.patient});
+
+  final Patient? patient;
 
   @override
   State<_AddPatientDialog> createState() => _AddPatientDialogState();
@@ -211,13 +298,22 @@ class _AddPatientDialog extends StatefulWidget {
 
 class _AddPatientDialogState extends State<_AddPatientDialog> {
   final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController();
-  final _ageController = TextEditingController();
-  final _phoneController = TextEditingController();
-  final _addressController = TextEditingController();
-  String _gender = 'male';
+  late final _nameController = TextEditingController(
+    text: widget.patient?.fullName ?? '',
+  );
+  late final _ageController = TextEditingController(
+    text: widget.patient?.ageYears?.toString() ?? '',
+  );
+  late final _phoneController = TextEditingController(
+    text: widget.patient?.phone ?? '',
+  );
+  late final _addressController = TextEditingController(
+    text: widget.patient?.address ?? '',
+  );
+  late String _gender = widget.patient?.gender ?? 'male';
   bool _submitting = false;
   String? _error;
+  bool get _isEditing => widget.patient != null;
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
@@ -226,15 +322,28 @@ class _AddPatientDialogState extends State<_AddPatientDialog> {
       _error = null;
     });
     try {
-      await PatientsApi().create(
-        fullName: _nameController.text.trim().toTitleCase,
-        phone: _phoneController.text.trim(),
-        ageYears: int.tryParse(_ageController.text.trim()),
-        gender: _gender,
-        address: _addressController.text.trim().isEmpty
-            ? null
-            : _addressController.text.trim().toSentenceCase,
-      );
+      if (_isEditing) {
+        await PatientsApi().update(
+          widget.patient!.id,
+          fullName: _nameController.text.trim().toTitleCase,
+          phone: _phoneController.text.trim(),
+          ageYears: int.tryParse(_ageController.text.trim()),
+          gender: _gender,
+          address: _addressController.text.trim().isEmpty
+              ? null
+              : _addressController.text.trim().toSentenceCase,
+        );
+      } else {
+        await PatientsApi().create(
+          fullName: _nameController.text.trim().toTitleCase,
+          phone: _phoneController.text.trim(),
+          ageYears: int.tryParse(_ageController.text.trim()),
+          gender: _gender,
+          address: _addressController.text.trim().isEmpty
+              ? null
+              : _addressController.text.trim().toSentenceCase,
+        );
+      }
       if (mounted) Navigator.of(context).pop(true);
     } catch (e) {
       setState(() => _error = e.toString());
@@ -246,7 +355,7 @@ class _AddPatientDialogState extends State<_AddPatientDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Add New Patient'),
+      title: Text(_isEditing ? 'Edit Patient' : 'Add New Patient'),
       content: SizedBox(
         width: 420,
         child: Form(
@@ -275,6 +384,11 @@ class _AddPatientDialogState extends State<_AddPatientDialog> {
                 items: const [
                   DropdownMenuItem(value: 'male', child: Text('Male')),
                   DropdownMenuItem(value: 'female', child: Text('Female')),
+                  DropdownMenuItem(value: 'other', child: Text('Other')),
+                  DropdownMenuItem(
+                    value: 'prefer_not_to_say',
+                    child: Text('Prefer Not to Say'),
+                  ),
                 ],
                 onChanged: (value) => setState(() => _gender = value ?? 'male'),
               ),
@@ -318,7 +432,7 @@ class _AddPatientDialogState extends State<_AddPatientDialog> {
                     color: Colors.white,
                   ),
                 )
-              : const Text('Add Patient'),
+              : Text(_isEditing ? 'Save Changes' : 'Add Patient'),
         ),
       ],
     );

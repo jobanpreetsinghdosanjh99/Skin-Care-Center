@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
+import '../services/clinics_api.dart';
 import '../services/settings_api.dart';
 import '../theme/app_theme.dart';
+import '../utils/text_format.dart';
 import '../widgets/common.dart';
 
 class SettingsPage extends StatefulWidget {
@@ -13,18 +15,309 @@ class SettingsPage extends StatefulWidget {
 
 class _SettingsPageState extends State<SettingsPage> {
   final _api = SettingsApi();
+  final _clinicsApi = ClinicsApi();
   late Future<List<String>> _footerNotesFuture;
+  late Future<List<Map<String, dynamic>>> _clinicsFuture;
 
   @override
   void initState() {
     super.initState();
     _footerNotesFuture = _api.listFooterNotes();
+    _clinicsFuture = _clinicsApi.list();
   }
 
   void _refreshFooterNotes() {
     setState(() {
       _footerNotesFuture = _api.listFooterNotes();
     });
+  }
+
+  void _refreshClinics() {
+    setState(() {
+      _clinicsFuture = _clinicsApi.list();
+    });
+  }
+
+  Future<void> _openChangePasswordDialog() async {
+    final currentController = TextEditingController();
+    final newController = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+    String? error;
+    bool submitting = false;
+
+    await showDialog<void>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          Future<void> submit() async {
+            if (!formKey.currentState!.validate()) return;
+            setDialogState(() {
+              submitting = true;
+              error = null;
+            });
+            try {
+              await _api.changePassword(
+                currentPassword: currentController.text,
+                newPassword: newController.text,
+              );
+              if (context.mounted) {
+                Navigator.of(context).pop();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Password updated successfully'),
+                  ),
+                );
+              }
+            } catch (e) {
+              setDialogState(() => error = e.toString());
+            } finally {
+              setDialogState(() => submitting = false);
+            }
+          }
+
+          return AlertDialog(
+            title: const Text('Change Password'),
+            content: SizedBox(
+              width: 380,
+              child: Form(
+                key: formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextFormField(
+                      controller: currentController,
+                      decoration: const InputDecoration(
+                        labelText: 'Current Password',
+                      ),
+                      obscureText: true,
+                      validator: (v) =>
+                          (v == null || v.isEmpty) ? 'Required' : null,
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    TextFormField(
+                      controller: newController,
+                      decoration: const InputDecoration(
+                        labelText: 'New Password',
+                      ),
+                      obscureText: true,
+                      validator: (v) => (v == null || v.length < 8)
+                          ? 'Must be at least 8 characters'
+                          : null,
+                    ),
+                    if (error != null) ...[
+                      const SizedBox(height: AppSpacing.sm),
+                      ErrorBanner(message: error!),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: submitting
+                    ? null
+                    : () => Navigator.of(context).pop(),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                onPressed: submitting ? null : submit,
+                child: submitting
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Text('Update Password'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Future<void> _openCreateClinicDialog() async {
+    final nameController = TextEditingController();
+    final phoneController = TextEditingController();
+    final emailController = TextEditingController();
+    final addressController = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+    String? error;
+    bool submitting = false;
+
+    final created = await showDialog<bool>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          Future<void> submit() async {
+            if (!formKey.currentState!.validate()) return;
+            setDialogState(() {
+              submitting = true;
+              error = null;
+            });
+            try {
+              await _clinicsApi.create(
+                name: nameController.text.trim().toTitleCase,
+                phone: phoneController.text.trim().isEmpty
+                    ? null
+                    : phoneController.text.trim(),
+                email: emailController.text.trim().isEmpty
+                    ? null
+                    : emailController.text.trim(),
+                address: addressController.text.trim().isEmpty
+                    ? null
+                    : addressController.text.trim().toSentenceCase,
+              );
+              if (context.mounted) Navigator.of(context).pop(true);
+            } catch (e) {
+              setDialogState(() => error = e.toString());
+            } finally {
+              setDialogState(() => submitting = false);
+            }
+          }
+
+          return AlertDialog(
+            title: const Text('Create New Clinic'),
+            content: SizedBox(
+              width: 400,
+              child: Form(
+                key: formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextFormField(
+                      controller: nameController,
+                      decoration: const InputDecoration(
+                        labelText: 'Clinic Name',
+                      ),
+                      textCapitalization: TextCapitalization.words,
+                      validator: (v) =>
+                          (v == null || v.trim().isEmpty) ? 'Required' : null,
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    TextFormField(
+                      controller: phoneController,
+                      decoration: const InputDecoration(labelText: 'Phone'),
+                      keyboardType: TextInputType.phone,
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    TextFormField(
+                      controller: emailController,
+                      decoration: const InputDecoration(labelText: 'Email'),
+                      keyboardType: TextInputType.emailAddress,
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    TextFormField(
+                      controller: addressController,
+                      decoration: const InputDecoration(labelText: 'Address'),
+                      textCapitalization: TextCapitalization.sentences,
+                    ),
+                    if (error != null) ...[
+                      const SizedBox(height: AppSpacing.sm),
+                      ErrorBanner(message: error!),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: submitting
+                    ? null
+                    : () => Navigator.of(context).pop(false),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                onPressed: submitting ? null : submit,
+                child: submitting
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Text('Create Clinic'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+    if (created == true) _refreshClinics();
+  }
+
+  Future<void> _openClinicListDialog() async {
+    await showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Clinic List'),
+        content: SizedBox(
+          width: 420,
+          height: 320,
+          child: FutureBuilder<List<Map<String, dynamic>>>(
+            future: _clinicsFuture,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const AppLoader();
+              }
+              final clinics = snapshot.data ?? [];
+              if (clinics.isEmpty) {
+                return const EmptyState(
+                  icon: Icons.local_hospital_outlined,
+                  title: 'No clinics found',
+                );
+              }
+              return ListView.separated(
+                itemCount: clinics.length,
+                separatorBuilder: (_, _) => const Divider(height: 1),
+                itemBuilder: (context, index) {
+                  final clinic = clinics[index];
+                  final isActive = clinic['is_active'] == true;
+                  return ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: Icon(
+                      Icons.local_hospital_rounded,
+                      color: isActive ? AppTheme.primary : Colors.grey,
+                    ),
+                    title: Text(
+                      (clinic['name'] as String).toTitleCase,
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    subtitle: Text((clinic['phone'] as String?) ?? ''),
+                    trailing: isActive
+                        ? const StatusPill(
+                            label: 'Active',
+                            color: AppTheme.success,
+                          )
+                        : TextButton(
+                            onPressed: () async {
+                              await _clinicsApi.activate(
+                                clinic['id'] as String,
+                              );
+                              if (context.mounted) Navigator.of(context).pop();
+                              _refreshClinics();
+                            },
+                            child: const Text('Switch'),
+                          ),
+                  );
+                },
+              );
+            },
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _openAddFooterNoteDialog() async {
@@ -80,7 +373,7 @@ class _SettingsPageState extends State<SettingsPage> {
               title: 'Account Security',
               description: 'Change your account password for better security.',
               child: OutlinedButton.icon(
-                onPressed: () {},
+                onPressed: _openChangePasswordDialog,
                 icon: const Icon(Icons.lock_outline, size: 18),
                 label: const Text('Change Password'),
               ),
@@ -98,12 +391,12 @@ class _SettingsPageState extends State<SettingsPage> {
                 runSpacing: AppSpacing.sm,
                 children: [
                   FilledButton.icon(
-                    onPressed: () {},
+                    onPressed: _openCreateClinicDialog,
                     icon: const Icon(Icons.add_business_rounded, size: 18),
                     label: const Text('Create New Clinic'),
                   ),
                   OutlinedButton.icon(
-                    onPressed: () {},
+                    onPressed: _openClinicListDialog,
                     icon: const Icon(Icons.list_alt_rounded, size: 18),
                     label: const Text('Clinic List'),
                   ),

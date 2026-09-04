@@ -32,4 +32,25 @@ class PatientsApi {
     }, expected: 201);
     return Patient.fromJson(data as Map<String, dynamic>);
   }
+
+  Future<Patient> update(
+    String patientId, {
+    required String fullName,
+    required String phone,
+    int? ageYears,
+    String gender = 'prefer_not_to_say',
+    String? address,
+  }) async {
+    final data = await _client.put('/patients/$patientId', {
+      'full_name': fullName,
+      'phone': phone,
+      'age_years': ageYears,
+      'gender': gender,
+      'address': address,
+    });
+    return Patient.fromJson(data as Map<String, dynamic>);
+  }
+
+  Future<void> delete(String patientId) =>
+      _client.delete('/patients/$patientId');
 }

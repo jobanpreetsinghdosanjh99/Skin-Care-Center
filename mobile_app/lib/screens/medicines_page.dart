@@ -60,6 +60,56 @@ class _MedicinesPageState extends State<MedicinesPage> {
     if (adjusted == true) _refresh();
   }
 
+  Future<void> _openEditMedicineDialog(Medicine medicine) async {
+    final updated = await showDialog<bool>(
+      context: context,
+      builder: (_) => _AddMedicineDialog(forms: _forms, medicine: medicine),
+    );
+    if (updated == true) _refresh();
+  }
+
+  Future<void> _openHistoryDialog(Medicine medicine) async {
+    await showDialog<void>(
+      context: context,
+      builder: (_) => _StockHistoryDialog(medicine: medicine),
+    );
+  }
+
+  Future<void> _confirmDelete(Medicine medicine) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Medicine'),
+        content: Text(
+          'Are you sure you want to delete "${medicine.name.toTitleCase}"? '
+          'This cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: AppTheme.danger),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    try {
+      await _api.delete(medicine.id);
+      _refresh();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to delete: $e')));
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return SafeArea(
@@ -150,6 +200,9 @@ class _MedicinesPageState extends State<MedicinesPage> {
                       return _MedicineCard(
                         medicine: medicine,
                         onAdjustStock: () => _openAdjustStockDialog(medicine),
+                        onEdit: () => _openEditMedicineDialog(medicine),
+                        onDelete: () => _confirmDelete(medicine),
+                        onViewHistory: () => _openHistoryDialog(medicine),
                       );
                     },
                   );
@@ -164,10 +217,19 @@ class _MedicinesPageState extends State<MedicinesPage> {
 }
 
 class _MedicineCard extends StatelessWidget {
-  const _MedicineCard({required this.medicine, required this.onAdjustStock});
+  const _MedicineCard({
+    required this.medicine,
+    required this.onAdjustStock,
+    required this.onEdit,
+    required this.onDelete,
+    required this.onViewHistory,
+  });
 
   final Medicine medicine;
   final VoidCallback onAdjustStock;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+  final VoidCallback onViewHistory;
 
   @override
   Widget build(BuildContext context) {
@@ -201,6 +263,26 @@ class _MedicineCard extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
+                IconButton(
+                  onPressed: onEdit,
+                  icon: const Icon(Icons.edit_outlined, size: 18),
+                  tooltip: 'Edit',
+                  visualDensity: VisualDensity.compact,
+                  constraints: const BoxConstraints(),
+                  padding: const EdgeInsets.all(4),
+                ),
+                IconButton(
+                  onPressed: onDelete,
+                  icon: Icon(
+                    Icons.delete_outline,
+                    size: 18,
+                    color: AppTheme.danger,
+                  ),
+                  tooltip: 'Delete',
+                  visualDensity: VisualDensity.compact,
+                  constraints: const BoxConstraints(),
+                  padding: const EdgeInsets.all(4),
+                ),
               ],
             ),
             const SizedBox(height: 6),
@@ -220,12 +302,22 @@ class _MedicineCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 8),
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton(
-                onPressed: onAdjustStock,
-                child: const Text('Adjust Stock'),
-              ),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: onViewHistory,
+                    child: const Text('View History'),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: onAdjustStock,
+                    child: const Text('Adjust Stock'),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -235,9 +327,10 @@ class _MedicineCard extends StatelessWidget {
 }
 
 class _AddMedicineDialog extends StatefulWidget {
-  const _AddMedicineDialog({required this.forms});
+  const _AddMedicineDialog({required this.forms, this.medicine});
 
   final List<String> forms;
+  final Medicine? medicine;
 
   @override
   State<_AddMedicineDialog> createState() => _AddMedicineDialogState();
@@ -245,11 +338,20 @@ class _AddMedicineDialog extends StatefulWidget {
 
 class _AddMedicineDialogState extends State<_AddMedicineDialog> {
   final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController();
+  late final _nameController = TextEditingController(
+    text: widget.medicine?.name ?? '',
+  );
   final _stockController = TextEditingController(text: '0');
   String? _form;
   bool _submitting = false;
   String? _error;
+  bool get _isEditing => widget.medicine != null;
+
+  @override
+  void initState() {
+    super.initState();
+    _form = widget.medicine?.form;
+  }
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
@@ -258,11 +360,19 @@ class _AddMedicineDialogState extends State<_AddMedicineDialog> {
       _error = null;
     });
     try {
-      await MedicinesApi().create(
-        name: _nameController.text.trim().toTitleCase,
-        form: _form!,
-        currentStock: int.tryParse(_stockController.text.trim()) ?? 0,
-      );
+      if (_isEditing) {
+        await MedicinesApi().update(
+          widget.medicine!.id,
+          name: _nameController.text.trim().toTitleCase,
+          form: _form!,
+        );
+      } else {
+        await MedicinesApi().create(
+          name: _nameController.text.trim().toTitleCase,
+          form: _form!,
+          currentStock: int.tryParse(_stockController.text.trim()) ?? 0,
+        );
+      }
       if (mounted) Navigator.of(context).pop(true);
     } catch (e) {
       setState(() => _error = e.toString());
@@ -274,7 +384,7 @@ class _AddMedicineDialogState extends State<_AddMedicineDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Add New Medicine'),
+      title: Text(_isEditing ? 'Edit Medicine' : 'Add New Medicine'),
       content: SizedBox(
         width: 400,
         child: Form(
@@ -306,11 +416,12 @@ class _AddMedicineDialogState extends State<_AddMedicineDialog> {
                 validator: (v) => v == null ? 'Required' : null,
               ),
               const SizedBox(height: AppSpacing.md),
-              TextFormField(
-                controller: _stockController,
-                decoration: const InputDecoration(labelText: 'Stock'),
-                keyboardType: TextInputType.number,
-              ),
+              if (!_isEditing)
+                TextFormField(
+                  controller: _stockController,
+                  decoration: const InputDecoration(labelText: 'Stock'),
+                  keyboardType: TextInputType.number,
+                ),
               if (_error != null) ...[
                 const SizedBox(height: AppSpacing.sm),
                 ErrorBanner(message: _error!),
@@ -337,7 +448,7 @@ class _AddMedicineDialogState extends State<_AddMedicineDialog> {
                     color: Colors.white,
                   ),
                 )
-              : const Text('Add Medicine'),
+              : Text(_isEditing ? 'Save Changes' : 'Add Medicine'),
         ),
       ],
     );
@@ -435,6 +546,87 @@ class _AdjustStockDialogState extends State<_AdjustStockDialog> {
                   ),
                 )
               : const Text('Save'),
+        ),
+      ],
+    );
+  }
+}
+
+class _StockHistoryDialog extends StatefulWidget {
+  const _StockHistoryDialog({required this.medicine});
+
+  final Medicine medicine;
+
+  @override
+  State<_StockHistoryDialog> createState() => _StockHistoryDialogState();
+}
+
+class _StockHistoryDialogState extends State<_StockHistoryDialog> {
+  late final Future<List<dynamic>> _future = MedicinesApi().stockHistory(
+    widget.medicine.id,
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text('Stock History — ${widget.medicine.name.toTitleCase}'),
+      content: SizedBox(
+        width: 420,
+        height: 360,
+        child: FutureBuilder<List<dynamic>>(
+          future: _future,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const AppLoader();
+            }
+            if (snapshot.hasError) {
+              return EmptyState(
+                icon: Icons.error_outline,
+                title: 'Failed to load history',
+                message: '${snapshot.error}',
+              );
+            }
+            final movements = snapshot.data ?? [];
+            if (movements.isEmpty) {
+              return const EmptyState(
+                icon: Icons.history_rounded,
+                title: 'No stock movements yet',
+              );
+            }
+            return ListView.separated(
+              itemCount: movements.length,
+              separatorBuilder: (_, _) => const Divider(height: 1),
+              itemBuilder: (context, index) {
+                final movement = movements[index] as Map<String, dynamic>;
+                final delta = movement['quantity_delta'] as int;
+                final isPositive = delta > 0;
+                return ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: Icon(
+                    isPositive
+                        ? Icons.arrow_upward_rounded
+                        : Icons.arrow_downward_rounded,
+                    color: isPositive ? AppTheme.success : AppTheme.danger,
+                  ),
+                  title: Text(
+                    '${(movement['movement_type'] as String).toTitleCase} — '
+                    '${isPositive ? '+' : ''}$delta',
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  subtitle: Text(
+                    (movement['note'] as String?) ??
+                        (movement['created_at'] as String),
+                  ),
+                );
+              },
+            );
+          },
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Close'),
         ),
       ],
     );

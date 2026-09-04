@@ -16,6 +16,7 @@ CREATE TABLE clinics (
   email TEXT,
   address TEXT,
   prescription_footer_note TEXT,
+  is_active BOOLEAN NOT NULL DEFAULT true,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );

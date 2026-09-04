@@ -1,9 +1,21 @@
+import '../models/prescription.dart';
 import 'api_client.dart';
 
 class PrescriptionsApi {
   PrescriptionsApi({ApiClient? client}) : _client = client ?? ApiClient();
 
   final ApiClient _client;
+
+  Future<List<Prescription>> list({String? patientId}) async {
+    final query = <String, String>{};
+    if (patientId != null && patientId.isNotEmpty) {
+      query['patient_id'] = patientId;
+    }
+    final data = await _client.get('/prescriptions', query) as List<dynamic>;
+    return data
+        .map((item) => Prescription.fromJson(item as Map<String, dynamic>))
+        .toList();
+  }
 
   Future<dynamic> create({
     required String patientId,

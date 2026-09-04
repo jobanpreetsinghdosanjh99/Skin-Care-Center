@@ -9,6 +9,12 @@ def get_or_create_default_clinic(conn: psycopg.Connection) -> uuid.UUID:
     The current MVP is single-clinic; multi-clinic selection can be layered
     on top of this once the clinic-switching UI is built.
     """
+    row = conn.execute(
+        "SELECT id FROM clinics WHERE is_active = true ORDER BY created_at LIMIT 1"
+    ).fetchone()
+    if row:
+        return row["id"]
+
     row = conn.execute("SELECT id FROM clinics ORDER BY created_at LIMIT 1").fetchone()
     if row:
         return row["id"]

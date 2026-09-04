@@ -296,8 +296,100 @@ class _DashboardPage extends StatelessWidget {
                 ),
               ),
             ),
+            const SizedBox(height: AppSpacing.lg),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(AppSpacing.lg),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'System Overview',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    Wrap(
+                      spacing: AppSpacing.md,
+                      runSpacing: AppSpacing.md,
+                      children: const [
+                        _SystemStatusCard(
+                          icon: Icons.description_rounded,
+                          title: 'Prescription System',
+                          subtitle: 'Active and operational',
+                          statusLabel: 'Online',
+                          color: AppTheme.success,
+                        ),
+                        _SystemStatusCard(
+                          icon: Icons.storage_rounded,
+                          title: 'Patient Database',
+                          subtitle: 'All records secured',
+                          statusLabel: 'Secure',
+                          color: AppTheme.primary,
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _SystemStatusCard extends StatelessWidget {
+  const _SystemStatusCard({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.statusLabel,
+    required this.color,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final String statusLabel;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 280,
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: AppTheme.background,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, color: color, size: 20),
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
+                Text(subtitle, style: Theme.of(context).textTheme.bodySmall),
+              ],
+            ),
+          ),
+          StatusPill(label: statusLabel, color: color),
+        ],
       ),
     );
   }

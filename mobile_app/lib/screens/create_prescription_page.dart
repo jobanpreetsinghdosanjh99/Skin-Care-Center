@@ -42,6 +42,10 @@ class _CreatePrescriptionPageState extends State<CreatePrescriptionPage> {
   List<Patient> _patientResults = [];
 
   String? _duration;
+  bool _customDuration = false;
+  final _customDurationController = TextEditingController();
+  String? _dosagePreset;
+  bool _customDosage = false;
   final _dosageController = TextEditingController();
   final _quantityController = TextEditingController(text: '1');
   final _instructionsController = TextEditingController();
@@ -59,6 +63,15 @@ class _CreatePrescriptionPageState extends State<CreatePrescriptionPage> {
     '7 days',
     '1 month',
     'weekly',
+    'Custom',
+  ];
+
+  static const _dosagePresets = [
+    '0-0-1 (Night)',
+    '1-0-0 (Morning)',
+    '1-1-1 (Thrice a Day)',
+    '1-0-1 (Alternate Day)',
+    'Custom',
   ];
 
   Future<void> _searchPatients(String query) async {
@@ -96,6 +109,8 @@ class _CreatePrescriptionPageState extends State<CreatePrescriptionPage> {
       );
       _selectedMedicine = null;
       _dosageController.clear();
+      _dosagePreset = null;
+      _customDosage = false;
       _quantityController.text = '1';
       _instructionsController.clear();
     });
@@ -104,6 +119,75 @@ class _CreatePrescriptionPageState extends State<CreatePrescriptionPage> {
   void _removeItem(int index) {
     setState(() => _items.removeAt(index));
   }
+
+  Future<void> _openPrescriptionsListDialog() async {
+    await showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('All Prescriptions'),
+        content: SizedBox(
+          width: 480,
+          height: 420,
+          child: FutureBuilder(
+            future: _prescriptionsApi.list(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const AppLoader();
+              }
+              if (snapshot.hasError) {
+                return EmptyState(
+                  icon: Icons.error_outline,
+                  title: 'Failed to load prescriptions',
+                  message: '${snapshot.error}',
+                );
+              }
+              final prescriptions = snapshot.data ?? [];
+              if (prescriptions.isEmpty) {
+                return const EmptyState(
+                  icon: Icons.receipt_long_outlined,
+                  title: 'No prescriptions yet',
+                );
+              }
+              return ListView.separated(
+                itemCount: prescriptions.length,
+                separatorBuilder: (_, _) => const Divider(height: 1),
+                itemBuilder: (context, index) {
+                  final prescription = prescriptions[index];
+                  return ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: const CircleAvatar(
+                      backgroundColor: AppTheme.primaryLight,
+                      foregroundColor: Colors.white,
+                      child: Icon(Icons.description, size: 18),
+                    ),
+                    title: Text(
+                      '${prescription.items.length} item(s)'
+                      '${prescription.duration != null ? ' • ${prescription.duration}' : ''}',
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    subtitle: Text(
+                      '${prescription.createdAt.day.toString().padLeft(2, '0')}/'
+                      '${prescription.createdAt.month.toString().padLeft(2, '0')}/'
+                      '${prescription.createdAt.year} • ${prescription.status.toTitleCase}',
+                    ),
+                  );
+                },
+              );
+            },
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String? get _effectiveDuration =>
+      _customDuration ? _customDurationController.text.trim() : _duration;
 
   Future<void> _savePrescription() async {
     if (_selectedPatient == null || _items.isEmpty) return;
@@ -114,7 +198,7 @@ class _CreatePrescriptionPageState extends State<CreatePrescriptionPage> {
     try {
       await _prescriptionsApi.create(
         patientId: _selectedPatient!.id,
-        duration: _duration,
+        duration: _effectiveDuration,
         items: _items
             .map(
               (item) => {
@@ -155,9 +239,14 @@ class _CreatePrescriptionPageState extends State<CreatePrescriptionPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const PageHeader(
+            PageHeader(
               title: 'Create Prescription',
               subtitle: 'Search a patient, then add medicines to prescribe',
+              action: OutlinedButton.icon(
+                onPressed: _openPrescriptionsListDialog,
+                icon: const Icon(Icons.receipt_long_rounded, size: 18),
+                label: const Text('View All Prescriptions'),
+              ),
             ),
             const SizedBox(height: AppSpacing.lg),
             Card(
@@ -289,12 +378,25 @@ class _CreatePrescriptionPageState extends State<CreatePrescriptionPage> {
                           .map(
                             (d) => DropdownMenuItem(
                               value: d,
-                              child: Text(d.toTitleCase),
+                              child: Text(d == 'Custom' ? d : d.toTitleCase),
                             ),
                           )
                           .toList(),
-                      onChanged: (value) => setState(() => _duration = value),
+                      onChanged: (value) => setState(() {
+                        _duration = value;
+                        _customDuration = value == 'Custom';
+                      }),
                     ),
+                    if (_customDuration) ...[
+                      const SizedBox(height: AppSpacing.md),
+                      TextField(
+                        controller: _customDurationController,
+                        decoration: const InputDecoration(
+                          labelText: 'Custom Duration',
+                          hintText: 'e.g. 3 weeks',
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: AppSpacing.md),
                     Autocomplete<Medicine>(
                       displayStringForOption: (m) => m.name.toTitleCase,
@@ -317,10 +419,32 @@ class _CreatePrescriptionPageState extends State<CreatePrescriptionPage> {
                           },
                     ),
                     const SizedBox(height: AppSpacing.md),
-                    TextField(
-                      controller: _dosageController,
+                    DropdownButtonFormField<String>(
+                      initialValue: _dosagePreset,
+                      isExpanded: true,
                       decoration: const InputDecoration(labelText: 'Dosage'),
+                      items: _dosagePresets
+                          .map(
+                            (d) => DropdownMenuItem(value: d, child: Text(d)),
+                          )
+                          .toList(),
+                      onChanged: (value) => setState(() {
+                        _dosagePreset = value;
+                        _customDosage = value == 'Custom';
+                        _dosageController.text = _customDosage
+                            ? ''
+                            : (value ?? '');
+                      }),
                     ),
+                    if (_customDosage) ...[
+                      const SizedBox(height: AppSpacing.md),
+                      TextField(
+                        controller: _dosageController,
+                        decoration: const InputDecoration(
+                          labelText: 'Custom Dosage',
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: AppSpacing.md),
                     TextField(
                       controller: _quantityController,

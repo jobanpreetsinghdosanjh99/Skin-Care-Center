@@ -32,4 +32,14 @@ class SettingsApi {
   Future<void> addFooterNote(String note) async {
     await _client.post('/settings/footer-notes', {'note': note}, expected: 201);
   }
+
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    await _client.post('/settings/password', {
+      'current_password': currentPassword,
+      'new_password': newPassword,
+    }, expected: 204);
+  }
 }

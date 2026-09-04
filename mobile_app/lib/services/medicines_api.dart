@@ -28,6 +28,21 @@ class MedicinesApi {
     return Medicine.fromJson(data as Map<String, dynamic>);
   }
 
+  Future<Medicine> update(
+    String medicineId, {
+    required String name,
+    required String form,
+  }) async {
+    final data = await _client.put('/medicines/$medicineId', {
+      'name': name,
+      'form': form,
+    });
+    return Medicine.fromJson(data as Map<String, dynamic>);
+  }
+
+  Future<void> delete(String medicineId) =>
+      _client.delete('/medicines/$medicineId');
+
   Future<Medicine> adjustStock(
     String medicineId,
     int quantityDelta, {
