@@ -4,9 +4,11 @@ import '../theme/app_theme.dart';
 
 /// Returns a dialog content width that never exceeds the available screen
 /// width (minus dialog insets), so fixed-width `AlertDialog` forms never
-/// overflow on narrow/mobile screens.
+/// overflow on narrow/mobile screens. Always non-negative, even during
+/// transient layout frames where the screen width is very small.
 double dialogWidth(BuildContext context, double preferred) {
   final available = MediaQuery.sizeOf(context).width - 64;
+  if (available <= 0) return 0;
   return preferred < available ? preferred : available;
 }
 

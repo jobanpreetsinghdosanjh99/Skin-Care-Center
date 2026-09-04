@@ -321,8 +321,9 @@ class _InfoTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final maxWidth =
         MediaQuery.sizeOf(context).width - (AppSpacing.xl * 2) - 40;
+    final width = maxWidth < 200 ? maxWidth : 200.0;
     return SizedBox(
-      width: maxWidth < 200 ? maxWidth : 200,
+      width: width < 0 ? 0 : width,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
