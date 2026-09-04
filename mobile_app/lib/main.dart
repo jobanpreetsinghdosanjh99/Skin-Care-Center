@@ -85,24 +85,28 @@ class _ClinicShellState extends State<ClinicShell> {
 
   @override
   Widget build(BuildContext context) {
+    final isExtended = MediaQuery.sizeOf(context).width > 900;
     return Scaffold(
       body: Row(
         children: [
           NavigationRail(
-            extended: MediaQuery.sizeOf(context).width > 900,
+            extended: isExtended,
             selectedIndex: _selectedIndex,
             onDestinationSelected: (index) =>
                 setState(() => _selectedIndex = index),
-            leading: const Padding(
-              padding: EdgeInsets.symmetric(vertical: 20),
+            leading: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 20),
               child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  CircleAvatar(
+                  const CircleAvatar(
                     backgroundColor: Color(0xFF1F4E79),
                     child: Icon(Icons.health_and_safety, color: Colors.white),
                   ),
-                  SizedBox(height: 8),
-                  Text('Skin Care Centre'),
+                  if (isExtended) ...[
+                    const SizedBox(height: 8),
+                    const Text('Skin Care Centre', textAlign: TextAlign.center),
+                  ],
                 ],
               ),
             ),
