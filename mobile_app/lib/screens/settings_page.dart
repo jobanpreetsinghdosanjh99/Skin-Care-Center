@@ -103,10 +103,14 @@ class _SettingsPageState extends State<SettingsPage> {
                       'Manage your clinic information. You can create a new clinic or update existing details.',
                     ),
                     const SizedBox(height: 12),
-                    Row(
+                    Wrap(
+                      spacing: 12,
+                      runSpacing: 8,
                       children: [
-                        FilledButton(onPressed: () {}, child: const Text('Create New Clinic')),
-                        const SizedBox(width: 12),
+                        FilledButton(
+                          onPressed: () {},
+                          child: const Text('Create New Clinic'),
+                        ),
                         OutlinedButton(onPressed: () {}, child: const Text('Clinic List')),
                       ],
                     ),
