@@ -1,0 +1,12 @@
+.dart_tool/
+.idea/
+.vscode/
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+backend/.venv/
+backend/env/.env*
+!backend/env/.env.example
+__pycache__/
+*.py[cod]
