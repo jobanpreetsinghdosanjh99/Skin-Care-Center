@@ -159,11 +159,11 @@ class _DashboardPage extends StatelessWidget {
     return _PageFrame(
       title: 'Welcome back, Doctor',
       subtitle: 'Manage your clinic efficiently',
-      child: GridView.count(
-        crossAxisCount: MediaQuery.sizeOf(context).width > 1100 ? 4 : 2,
+      child: GridView.extent(
+        maxCrossAxisExtent: 280,
         crossAxisSpacing: 16,
         mainAxisSpacing: 16,
-        childAspectRatio: 2.0,
+        childAspectRatio: 2.6,
         children: const [
           _MetricCard(
             label: 'Total Patients',
@@ -206,7 +206,7 @@ class _MetricCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
@@ -218,13 +218,21 @@ class _MetricCard extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
-                  const SizedBox(height: 4),
                   Text(
-                    value,
+                    label,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.headlineSmall,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                  const SizedBox(height: 2),
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      value,
+                      maxLines: 1,
+                      style: Theme.of(context).textTheme.headlineSmall,
+                    ),
                   ),
                 ],
               ),
