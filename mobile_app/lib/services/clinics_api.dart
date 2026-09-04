@@ -1,9 +1,15 @@
+import '../models/clinic.dart';
 import 'api_client.dart';
 
 class ClinicsApi {
   ClinicsApi({ApiClient? client}) : _client = client ?? ApiClient();
 
   final ApiClient _client;
+
+  Future<Clinic> getActive() async {
+    final data = await _client.get('/clinics/active');
+    return Clinic.fromJson(data as Map<String, dynamic>);
+  }
 
   Future<List<Map<String, dynamic>>> list() async {
     final data = await _client.get('/clinics') as List<dynamic>;

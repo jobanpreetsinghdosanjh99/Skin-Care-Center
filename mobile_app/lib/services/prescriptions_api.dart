@@ -17,17 +17,18 @@ class PrescriptionsApi {
         .toList();
   }
 
-  Future<dynamic> create({
+  Future<Prescription> create({
     required String patientId,
     String? duration,
     String? diagnosisNotes,
     required List<Map<String, dynamic>> items,
-  }) {
-    return _client.post('/prescriptions', {
+  }) async {
+    final data = await _client.post('/prescriptions', {
       'patient_id': patientId,
       'duration': duration,
       'diagnosis_notes': diagnosisNotes,
       'items': items,
     }, expected: 201);
+    return Prescription.fromJson(data as Map<String, dynamic>);
   }
 }

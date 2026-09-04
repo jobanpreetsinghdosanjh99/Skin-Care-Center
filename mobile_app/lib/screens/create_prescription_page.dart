@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:printing/printing.dart';
 
 import '../models/medicine.dart';
 import '../models/patient.dart';
+import '../models/prescription.dart';
+import '../services/clinics_api.dart';
 import '../services/medicines_api.dart';
 import '../services/patients_api.dart';
 import '../services/prescriptions_api.dart';
 import '../theme/app_theme.dart';
+import '../utils/prescription_pdf.dart';
 import '../utils/text_format.dart';
 import '../widgets/common.dart';
 
@@ -38,6 +42,7 @@ class _CreatePrescriptionPageState extends State<CreatePrescriptionPage> {
   final _patientsApi = PatientsApi();
   final _medicinesApi = MedicinesApi();
   final _prescriptionsApi = PrescriptionsApi();
+  final _clinicsApi = ClinicsApi();
 
   final _patientSearchController = TextEditingController();
   Patient? _selectedPatient;
@@ -128,6 +133,25 @@ class _CreatePrescriptionPageState extends State<CreatePrescriptionPage> {
     setState(() => _items.removeAt(index));
   }
 
+  Future<void> _printPrescription(Prescription prescription) async {
+    try {
+      final clinic = await _clinicsApi.getActive();
+      final patient = await _patientsApi.get(prescription.patientId);
+      final doc = await PrescriptionPdf.build(
+        clinic: clinic,
+        patient: patient,
+        prescription: prescription,
+      );
+      await Printing.layoutPdf(onLayout: (_) => doc.save());
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to print: $e')));
+      }
+    }
+  }
+
   Future<void> _openPrescriptionsListDialog() async {
     await showDialog<void>(
       context: context,
@@ -136,7 +160,7 @@ class _CreatePrescriptionPageState extends State<CreatePrescriptionPage> {
         content: SizedBox(
           width: 480,
           height: 420,
-          child: FutureBuilder(
+          child: FutureBuilder<List<Prescription>>(
             future: _prescriptionsApi.list(),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
@@ -178,6 +202,11 @@ class _CreatePrescriptionPageState extends State<CreatePrescriptionPage> {
                       '${prescription.createdAt.month.toString().padLeft(2, '0')}/'
                       '${prescription.createdAt.year} • ${prescription.status.toTitleCase}',
                     ),
+                    trailing: IconButton(
+                      onPressed: () => _printPrescription(prescription),
+                      icon: const Icon(Icons.print_outlined, size: 20),
+                      tooltip: 'Print',
+                    ),
                   );
                 },
               );
@@ -204,7 +233,7 @@ class _CreatePrescriptionPageState extends State<CreatePrescriptionPage> {
       _error = null;
     });
     try {
-      await _prescriptionsApi.create(
+      final saved = await _prescriptionsApi.create(
         patientId: _selectedPatient!.id,
         duration: _effectiveDuration,
         items: _items
@@ -226,9 +255,14 @@ class _CreatePrescriptionPageState extends State<CreatePrescriptionPage> {
           _patientSearchController.clear();
         });
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Prescription saved successfully'),
+          SnackBar(
+            content: const Text('Prescription saved successfully'),
             backgroundColor: AppTheme.success,
+            action: SnackBarAction(
+              label: 'PRINT',
+              textColor: Colors.white,
+              onPressed: () => _printPrescription(saved),
+            ),
           ),
         );
       }

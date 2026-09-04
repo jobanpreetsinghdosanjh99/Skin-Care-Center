@@ -6,6 +6,21 @@ from app.schemas.clinics import Clinic, ClinicCreate
 router = APIRouter(prefix="/clinics", tags=["clinics"])
 
 
+@router.get("/active", response_model=Clinic)
+def get_active_clinic() -> Clinic:
+    with get_connection() as conn:
+        row = conn.execute(
+            "SELECT * FROM clinics WHERE is_active = true ORDER BY created_at LIMIT 1"
+        ).fetchone()
+        if not row:
+            row = conn.execute(
+                "SELECT * FROM clinics ORDER BY created_at LIMIT 1"
+            ).fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="No clinic configured")
+        return Clinic(**row)
+
+
 @router.get("", response_model=list[Clinic])
 def list_clinics() -> list[Clinic]:
     with get_connection() as conn:

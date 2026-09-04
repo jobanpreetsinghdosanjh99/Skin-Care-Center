@@ -28,6 +28,8 @@ class Prescription {
     required this.status,
     this.duration,
     this.diagnosisNotes,
+    this.generalInstructions,
+    this.footerNote,
     required this.createdAt,
     required this.items,
   });
@@ -37,6 +39,8 @@ class Prescription {
   final String status;
   final String? duration;
   final String? diagnosisNotes;
+  final String? generalInstructions;
+  final String? footerNote;
   final DateTime createdAt;
   final List<PrescriptionItem> items;
 
@@ -47,6 +51,8 @@ class Prescription {
       status: json['status'] as String,
       duration: json['duration'] as String?,
       diagnosisNotes: json['diagnosis_notes'] as String?,
+      generalInstructions: json['general_instructions'] as String?,
+      footerNote: json['footer_note'] as String?,
       createdAt: DateTime.parse(json['created_at'] as String),
       items: (json['items'] as List<dynamic>? ?? [])
           .map(
