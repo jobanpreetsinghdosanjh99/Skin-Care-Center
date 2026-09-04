@@ -1,17 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:printing/printing.dart';
 
 import '../models/medicine.dart';
 import '../models/patient.dart';
 import '../models/prescription.dart';
-import '../services/clinics_api.dart';
 import '../services/medicines_api.dart';
 import '../services/patients_api.dart';
 import '../services/prescriptions_api.dart';
 import '../theme/app_theme.dart';
-import '../utils/prescription_pdf.dart';
 import '../utils/text_format.dart';
 import '../widgets/common.dart';
+import '../widgets/prescription_actions.dart';
 
 class PrescriptionItemDraft {
   PrescriptionItemDraft({
@@ -30,9 +28,18 @@ class PrescriptionItemDraft {
 }
 
 class CreatePrescriptionPage extends StatefulWidget {
-  const CreatePrescriptionPage({super.key, this.preselectedPatient});
+  const CreatePrescriptionPage({
+    super.key,
+    this.preselectedPatient,
+    this.repeatFrom,
+  });
 
   final Patient? preselectedPatient;
+
+  /// When set, pre-fills the form (duration + all items) from a previous
+  /// prescription so the user can quickly issue a repeat/refill without
+  /// re-entering every medicine — mirrors the old app's "Repeat" action.
+  final Prescription? repeatFrom;
 
   @override
   State<CreatePrescriptionPage> createState() => _CreatePrescriptionPageState();
@@ -42,7 +49,6 @@ class _CreatePrescriptionPageState extends State<CreatePrescriptionPage> {
   final _patientsApi = PatientsApi();
   final _medicinesApi = MedicinesApi();
   final _prescriptionsApi = PrescriptionsApi();
-  final _clinicsApi = ClinicsApi();
 
   final _patientSearchController = TextEditingController();
   Patient? _selectedPatient;
@@ -67,6 +73,24 @@ class _CreatePrescriptionPageState extends State<CreatePrescriptionPage> {
   void initState() {
     super.initState();
     _selectedPatient = widget.preselectedPatient;
+    final repeat = widget.repeatFrom;
+    if (repeat != null) {
+      _duration = repeat.duration;
+      if (_duration != null && !_durations.contains(_duration)) {
+        _customDuration = true;
+        _customDurationController.text = _duration!;
+      }
+      _items.addAll(
+        repeat.items.map(
+          (item) => PrescriptionItemDraft(
+            medicineName: item.medicineName,
+            dosage: item.dosage,
+            quantity: item.quantity,
+            instructions: item.instructions,
+          ),
+        ),
+      );
+    }
   }
 
   static const _durations = [
@@ -133,25 +157,6 @@ class _CreatePrescriptionPageState extends State<CreatePrescriptionPage> {
     setState(() => _items.removeAt(index));
   }
 
-  Future<void> _printPrescription(Prescription prescription) async {
-    try {
-      final clinic = await _clinicsApi.getActive();
-      final patient = await _patientsApi.get(prescription.patientId);
-      final doc = await PrescriptionPdf.build(
-        clinic: clinic,
-        patient: patient,
-        prescription: prescription,
-      );
-      await Printing.layoutPdf(onLayout: (_) => doc.save());
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Failed to print: $e')));
-      }
-    }
-  }
-
   Future<void> _openPrescriptionsListDialog() async {
     await showDialog<void>(
       context: context,
@@ -202,10 +207,9 @@ class _CreatePrescriptionPageState extends State<CreatePrescriptionPage> {
                       '${prescription.createdAt.month.toString().padLeft(2, '0')}/'
                       '${prescription.createdAt.year} • ${prescription.status.toTitleCase}',
                     ),
-                    trailing: IconButton(
-                      onPressed: () => _printPrescription(prescription),
-                      icon: const Icon(Icons.print_outlined, size: 20),
-                      tooltip: 'Print',
+                    trailing: PrescriptionActions(
+                      prescription: prescription,
+                      dense: true,
                     ),
                   );
                 },
@@ -255,14 +259,33 @@ class _CreatePrescriptionPageState extends State<CreatePrescriptionPage> {
           _patientSearchController.clear();
         });
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Prescription saved successfully'),
+          const SnackBar(
+            content: Text('Prescription saved successfully'),
             backgroundColor: AppTheme.success,
-            action: SnackBarAction(
-              label: 'PRINT',
-              textColor: Colors.white,
-              onPressed: () => _printPrescription(saved),
+          ),
+        );
+        await showDialog<void>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Prescription Saved'),
+            content: SizedBox(
+              width: 360,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('What would you like to do next?'),
+                  const SizedBox(height: AppSpacing.md),
+                  PrescriptionActions(prescription: saved),
+                ],
+              ),
             ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Done'),
+              ),
+            ],
           ),
         );
       }

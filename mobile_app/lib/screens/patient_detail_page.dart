@@ -1,15 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:printing/printing.dart';
 
 import '../models/patient.dart';
 import '../models/prescription.dart';
-import '../services/clinics_api.dart';
 import '../services/patients_api.dart';
 import '../services/prescriptions_api.dart';
 import '../theme/app_theme.dart';
-import '../utils/prescription_pdf.dart';
 import '../utils/text_format.dart';
 import '../widgets/common.dart';
+import '../widgets/prescription_actions.dart';
 import 'create_prescription_page.dart';
 
 /// Full detail view for a single patient: profile info, edit/delete
@@ -26,7 +24,6 @@ class PatientDetailPage extends StatefulWidget {
 class _PatientDetailPageState extends State<PatientDetailPage> {
   final _patientsApi = PatientsApi();
   final _prescriptionsApi = PrescriptionsApi();
-  final _clinicsApi = ClinicsApi();
 
   late Future<Patient> _patientFuture;
   late Future<List<Prescription>> _prescriptionsFuture;
@@ -96,25 +93,6 @@ class _PatientDetailPageState extends State<PatientDetailPage> {
       ),
     );
     _refresh();
-  }
-
-  Future<void> _printPrescription(Prescription prescription) async {
-    try {
-      final clinic = await _clinicsApi.getActive();
-      final patient = await _patientsApi.get(prescription.patientId);
-      final doc = await PrescriptionPdf.build(
-        clinic: clinic,
-        patient: patient,
-        prescription: prescription,
-      );
-      await Printing.layoutPdf(onLayout: (_) => doc.save());
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Failed to print: $e')));
-      }
-    }
   }
 
   @override
@@ -289,14 +267,9 @@ class _PatientDetailPageState extends State<PatientDetailPage> {
                                 '${prescription.status.toTitleCase}'
                                 '${(prescription.diagnosisNotes ?? '').isNotEmpty ? ' • ${prescription.diagnosisNotes}' : ''}',
                               ),
-                              trailing: IconButton(
-                                onPressed: () =>
-                                    _printPrescription(prescription),
-                                icon: const Icon(
-                                  Icons.print_outlined,
-                                  size: 20,
-                                ),
-                                tooltip: 'Print',
+                              trailing: PrescriptionActions(
+                                prescription: prescription,
+                                dense: true,
                               ),
                               children: prescription.items
                                   .map(

@@ -36,6 +36,8 @@ class ClinicShell extends StatefulWidget {
 class _ClinicShellState extends State<ClinicShell> {
   int _selectedIndex = 0;
 
+  final _navigatorKeys = List.generate(6, (_) => GlobalKey<NavigatorState>());
+
   static const _pages = <Widget>[
     _DashboardPage(),
     PatientsPage(),
@@ -97,8 +99,15 @@ class _ClinicShellState extends State<ClinicShell> {
             extended: isExtended,
             minExtendedWidth: 220,
             selectedIndex: _selectedIndex,
-            onDestinationSelected: (index) =>
-                setState(() => _selectedIndex = index),
+            onDestinationSelected: (index) {
+              if (index == _selectedIndex) {
+                _navigatorKeys[index].currentState?.popUntil(
+                  (route) => route.isFirst,
+                );
+              } else {
+                setState(() => _selectedIndex = index);
+              }
+            },
             leading: Padding(
               padding: const EdgeInsets.symmetric(vertical: 24),
               child: Column(
@@ -142,7 +151,21 @@ class _ClinicShellState extends State<ClinicShell> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _TopBar(title: _titles[_selectedIndex]),
-                Expanded(child: _pages[_selectedIndex]),
+                Expanded(
+                  child: IndexedStack(
+                    index: _selectedIndex,
+                    children: [
+                      for (var i = 0; i < _pages.length; i++)
+                        Navigator(
+                          key: _navigatorKeys[i],
+                          onGenerateRoute: (settings) => MaterialPageRoute(
+                            settings: settings,
+                            builder: (context) => _pages[i],
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),
