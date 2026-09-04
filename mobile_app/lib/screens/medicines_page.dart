@@ -314,22 +314,61 @@ class _MedicineCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 8),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final buttons = [
+                  OutlinedButton(
                     onPressed: onViewHistory,
-                    child: const Text('View History'),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 8,
+                      ),
+                      minimumSize: const Size(0, 36),
+                      textStyle: const TextStyle(fontSize: 12.5),
+                    ),
+                    child: const Text(
+                      'View History',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: OutlinedButton(
+                  OutlinedButton(
                     onPressed: onAdjustStock,
-                    child: const Text('Adjust Stock'),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 8,
+                      ),
+                      minimumSize: const Size(0, 36),
+                      textStyle: const TextStyle(fontSize: 12.5),
+                    ),
+                    child: const Text(
+                      'Adjust Stock',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
-                ),
-              ],
+                ];
+                // Very narrow cards can't fit two side-by-side buttons
+                // without clipping their labels, so stack them instead.
+                if (constraints.maxWidth < 220) {
+                  return Column(
+                    children: [
+                      SizedBox(width: double.infinity, child: buttons[0]),
+                      const SizedBox(height: 8),
+                      SizedBox(width: double.infinity, child: buttons[1]),
+                    ],
+                  );
+                }
+                return Row(
+                  children: [
+                    Expanded(child: buttons[0]),
+                    const SizedBox(width: 8),
+                    Expanded(child: buttons[1]),
+                  ],
+                );
+              },
             ),
           ],
         ),
