@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../models/footer_note.dart';
 import '../services/clinics_api.dart';
 import '../services/settings_api.dart';
 import '../theme/app_theme.dart';
@@ -16,7 +17,7 @@ class SettingsPage extends StatefulWidget {
 class _SettingsPageState extends State<SettingsPage> {
   final _api = SettingsApi();
   final _clinicsApi = ClinicsApi();
-  late Future<List<String>> _footerNotesFuture;
+  late Future<List<FooterNote>> _footerNotesFuture;
   late Future<List<Map<String, dynamic>>> _clinicsFuture;
 
   @override
@@ -320,12 +321,13 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  Future<void> _openAddFooterNoteDialog() async {
-    final controller = TextEditingController();
-    final added = await showDialog<bool>(
+  Future<void> _openFooterNoteDialog({FooterNote? existing}) async {
+    final controller = TextEditingController(text: existing?.note ?? '');
+    final isEditing = existing != null;
+    final saved = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Add Footer Note'),
+        title: Text(isEditing ? 'Edit Footer Note' : 'Add Footer Note'),
         content: SizedBox(
           width: 380,
           child: TextField(
@@ -333,6 +335,7 @@ class _SettingsPageState extends State<SettingsPage> {
             decoration: const InputDecoration(labelText: 'Note'),
             textCapitalization: TextCapitalization.sentences,
             maxLines: 3,
+            autofocus: true,
           ),
         ),
         actions: [
@@ -343,7 +346,26 @@ class _SettingsPageState extends State<SettingsPage> {
           FilledButton(
             onPressed: () async {
               if (controller.text.trim().isEmpty) return;
-              await _api.addFooterNote(controller.text.trim());
+              if (isEditing) {
+                await _api.updateFooterNote(
+                  existing.id,
+                  note: controller.text.trim(),
+                  sortOrder: existing.sortOrder,
+                  isActive: existing.isActive,
+                );
+              } else {
+                final notes = await _footerNotesFuture;
+                final nextOrder = notes.isEmpty
+                    ? 0
+                    : notes
+                              .map((n) => n.sortOrder)
+                              .reduce((a, b) => a > b ? a : b) +
+                          1;
+                await _api.addFooterNote(
+                  controller.text.trim(),
+                  sortOrder: nextOrder,
+                );
+              }
               if (context.mounted) Navigator.of(context).pop(true);
             },
             child: const Text('Save'),
@@ -351,7 +373,65 @@ class _SettingsPageState extends State<SettingsPage> {
         ],
       ),
     );
-    if (added == true) _refreshFooterNotes();
+    if (saved == true) _refreshFooterNotes();
+  }
+
+  Future<void> _confirmDeleteFooterNote(FooterNote note) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Footer Note'),
+        content: const Text('Are you sure you want to delete this note?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: AppTheme.danger),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    await _api.deleteFooterNote(note.id);
+    _refreshFooterNotes();
+  }
+
+  Future<void> _toggleFooterNoteActive(FooterNote note) async {
+    await _api.updateFooterNote(
+      note.id,
+      note: note.note,
+      sortOrder: note.sortOrder,
+      isActive: !note.isActive,
+    );
+    _refreshFooterNotes();
+  }
+
+  Future<void> _moveFooterNote(
+    List<FooterNote> notes,
+    int index,
+    int delta,
+  ) async {
+    final targetIndex = index + delta;
+    if (targetIndex < 0 || targetIndex >= notes.length) return;
+    final a = notes[index];
+    final b = notes[targetIndex];
+    await _api.updateFooterNote(
+      a.id,
+      note: a.note,
+      sortOrder: b.sortOrder,
+      isActive: a.isActive,
+    );
+    await _api.updateFooterNote(
+      b.id,
+      note: b.note,
+      sortOrder: a.sortOrder,
+      isActive: b.isActive,
+    );
+    _refreshFooterNotes();
   }
 
   @override
@@ -407,54 +487,136 @@ class _SettingsPageState extends State<SettingsPage> {
             _SettingsSection(
               icon: Icons.notes_rounded,
               iconColor: const Color(0xFF6D5DD3),
-              title: 'Prescription Footer Note',
+              title: 'Prescription Footer Notes',
               description:
-                  'Add, update, or view your prescription footer notes.',
+                  'Manage the notes printed at the bottom of every '
+                  'prescription. Notes are printed in order, top to bottom; '
+                  'inactive notes are hidden from printed prescriptions.',
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   FilledButton.icon(
-                    onPressed: _openAddFooterNoteDialog,
+                    onPressed: () => _openFooterNoteDialog(),
                     icon: const Icon(Icons.add_rounded, size: 18),
                     label: const Text('Add Footer Note'),
                   ),
                   const SizedBox(height: AppSpacing.md),
-                  FutureBuilder<List<String>>(
+                  FutureBuilder<List<FooterNote>>(
                     future: _footerNotesFuture,
                     builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 12),
+                          child: AppLoader(),
+                        );
+                      }
                       final notes = snapshot.data ?? [];
-                      if (notes.isEmpty) return const SizedBox.shrink();
+                      if (notes.isEmpty) {
+                        return Text(
+                          'No footer notes yet.',
+                          style: Theme.of(context).textTheme.bodySmall,
+                        );
+                      }
                       return Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
-                        children: notes
-                            .map(
-                              (note) => Container(
-                                margin: const EdgeInsets.only(
-                                  bottom: AppSpacing.sm,
+                        children: notes.asMap().entries.map((entry) {
+                          final index = entry.key;
+                          final note = entry.value;
+                          return Container(
+                            margin: const EdgeInsets.only(
+                              bottom: AppSpacing.sm,
+                            ),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppTheme.background,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.sticky_note_2_outlined,
+                                  size: 16,
+                                  color: note.isActive
+                                      ? AppTheme.primary
+                                      : Colors.grey,
                                 ),
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 14,
-                                  vertical: 10,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: AppTheme.background,
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: Row(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const Icon(
-                                      Icons.sticky_note_2_outlined,
-                                      size: 16,
-                                      color: AppTheme.primary,
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    note.note,
+                                    style: TextStyle(
+                                      color: note.isActive ? null : Colors.grey,
+                                      decoration: note.isActive
+                                          ? null
+                                          : TextDecoration.lineThrough,
                                     ),
-                                    const SizedBox(width: 8),
-                                    Expanded(child: Text(note)),
-                                  ],
+                                  ),
                                 ),
-                              ),
-                            )
-                            .toList(),
+                                IconButton(
+                                  onPressed: index == 0
+                                      ? null
+                                      : () => _moveFooterNote(notes, index, -1),
+                                  icon: const Icon(
+                                    Icons.arrow_upward_rounded,
+                                    size: 16,
+                                  ),
+                                  tooltip: 'Move up',
+                                  visualDensity: VisualDensity.compact,
+                                ),
+                                IconButton(
+                                  onPressed: index == notes.length - 1
+                                      ? null
+                                      : () => _moveFooterNote(notes, index, 1),
+                                  icon: const Icon(
+                                    Icons.arrow_downward_rounded,
+                                    size: 16,
+                                  ),
+                                  tooltip: 'Move down',
+                                  visualDensity: VisualDensity.compact,
+                                ),
+                                IconButton(
+                                  onPressed: () =>
+                                      _toggleFooterNoteActive(note),
+                                  icon: Icon(
+                                    note.isActive
+                                        ? Icons.visibility_outlined
+                                        : Icons.visibility_off_outlined,
+                                    size: 16,
+                                  ),
+                                  tooltip: note.isActive
+                                      ? 'Hide from print'
+                                      : 'Show on print',
+                                  visualDensity: VisualDensity.compact,
+                                ),
+                                IconButton(
+                                  onPressed: () =>
+                                      _openFooterNoteDialog(existing: note),
+                                  icon: const Icon(
+                                    Icons.edit_outlined,
+                                    size: 16,
+                                  ),
+                                  tooltip: 'Edit',
+                                  visualDensity: VisualDensity.compact,
+                                ),
+                                IconButton(
+                                  onPressed: () =>
+                                      _confirmDeleteFooterNote(note),
+                                  icon: const Icon(
+                                    Icons.delete_outline,
+                                    size: 16,
+                                    color: AppTheme.danger,
+                                  ),
+                                  tooltip: 'Delete',
+                                  visualDensity: VisualDensity.compact,
+                                ),
+                              ],
+                            ),
+                          );
+                        }).toList(),
                       );
                     },
                   ),

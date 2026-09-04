@@ -276,7 +276,7 @@ class _CreatePrescriptionPageState extends State<CreatePrescriptionPage> {
                 children: [
                   const Text('What would you like to do next?'),
                   const SizedBox(height: AppSpacing.md),
-                  PrescriptionActions(prescription: saved),
+                  PrescriptionActions(prescription: saved, showRepeat: false),
                 ],
               ),
             ),

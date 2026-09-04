@@ -50,9 +50,17 @@ def create_prescription(payload: PrescriptionCreate) -> Prescription:
         if not patient:
             raise HTTPException(status_code=404, detail="Patient not found")
 
-        clinic = conn.execute(
-            "SELECT prescription_footer_note FROM clinics WHERE id = %s", (clinic_id,)
-        ).fetchone()
+        footer_notes = conn.execute(
+            """
+            SELECT note FROM footer_notes
+            WHERE clinic_id = %s AND is_active = true
+            ORDER BY sort_order, created_at
+            """,
+            (clinic_id,),
+        ).fetchall()
+        combined_footer_note = (
+            "\n".join(row["note"] for row in footer_notes) if footer_notes else None
+        )
 
         prescription = conn.execute(
             """
@@ -68,7 +76,7 @@ def create_prescription(payload: PrescriptionCreate) -> Prescription:
                 payload.duration,
                 payload.diagnosis_notes,
                 payload.general_instructions,
-                clinic["prescription_footer_note"] if clinic else None,
+                combined_footer_note,
             ),
         ).fetchone()
 

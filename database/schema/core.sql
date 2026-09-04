@@ -122,5 +122,9 @@ CREATE TABLE footer_notes (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   clinic_id UUID NOT NULL REFERENCES clinics(id),
   note TEXT NOT NULL,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  is_active BOOLEAN NOT NULL DEFAULT true,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+CREATE INDEX footer_notes_clinic_order_idx ON footer_notes (clinic_id, sort_order);

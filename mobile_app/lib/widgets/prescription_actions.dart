@@ -9,18 +9,26 @@ import '../services/clinics_api.dart';
 import '../services/patients_api.dart';
 import '../utils/prescription_pdf.dart';
 
-/// Row of three explicit actions for a prescription — Print, Download,
-/// and Repeat — matching the old third-party app's prescription toolbar
+/// Row of explicit prescription actions — Print, Download, and (optionally)
+/// Repeat — matching the old third-party app's prescription toolbar
 /// instead of a single ambiguous "print" icon.
+///
+/// [showRepeat] should only be true when browsing a patient's existing
+/// prescription history (e.g. from Patient Detail or the prescriptions
+/// list), where re-issuing a past prescription makes sense. It should be
+/// false right after creating a brand-new prescription, since "repeat"
+/// on something just created is meaningless.
 class PrescriptionActions extends StatelessWidget {
   const PrescriptionActions({
     super.key,
     required this.prescription,
     this.dense = false,
+    this.showRepeat = true,
   });
 
   final Prescription prescription;
   final bool dense;
+  final bool showRepeat;
 
   static final _clinicsApi = ClinicsApi();
   static final _patientsApi = PatientsApi();
@@ -105,11 +113,12 @@ class PrescriptionActions extends StatelessWidget {
             icon: const Icon(Icons.download_outlined, size: 20),
             tooltip: 'Download',
           ),
-          IconButton(
-            onPressed: () => _repeat(context),
-            icon: const Icon(Icons.repeat_rounded, size: 20),
-            tooltip: 'Repeat',
-          ),
+          if (showRepeat)
+            IconButton(
+              onPressed: () => _repeat(context),
+              icon: const Icon(Icons.repeat_rounded, size: 20),
+              tooltip: 'Repeat',
+            ),
         ],
       );
     }
@@ -126,11 +135,12 @@ class PrescriptionActions extends StatelessWidget {
           icon: const Icon(Icons.download_outlined, size: 18),
           label: const Text('Download'),
         ),
-        OutlinedButton.icon(
-          onPressed: () => _repeat(context),
-          icon: const Icon(Icons.repeat_rounded, size: 18),
-          label: const Text('Repeat'),
-        ),
+        if (showRepeat)
+          OutlinedButton.icon(
+            onPressed: () => _repeat(context),
+            icon: const Icon(Icons.repeat_rounded, size: 18),
+            label: const Text('Repeat'),
+          ),
       ],
     );
   }

@@ -1,3 +1,5 @@
+import uuid
+
 from pydantic import BaseModel, Field
 
 
@@ -18,6 +20,20 @@ class ClinicSettingsUpdate(BaseModel):
 
 class FooterNoteCreate(BaseModel):
     note: str = Field(min_length=1)
+    sort_order: int = 0
+
+
+class FooterNoteUpdate(BaseModel):
+    note: str = Field(min_length=1)
+    sort_order: int = 0
+    is_active: bool = True
+
+
+class FooterNote(BaseModel):
+    id: uuid.UUID
+    note: str
+    sort_order: int
+    is_active: bool
 
 
 class PasswordChange(BaseModel):

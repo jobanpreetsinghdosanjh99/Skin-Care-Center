@@ -85,33 +85,36 @@ class PrescriptionPdf {
   }
 
   static pw.Widget _buildHeader(Clinic clinic) {
-    return pw.Column(
-      crossAxisAlignment: pw.CrossAxisAlignment.center,
+    return pw.Row(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
+      mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
       children: [
-        pw.Text(
-          clinic.name,
-          style: pw.TextStyle(
-            fontSize: 20,
-            fontWeight: pw.FontWeight.bold,
-            color: PdfColors.blueGrey900,
+        pw.Expanded(
+          child: pw.Text(
+            clinic.name,
+            style: pw.TextStyle(
+              fontSize: 20,
+              fontWeight: pw.FontWeight.bold,
+              color: PdfColors.blueGrey900,
+            ),
           ),
         ),
-        if ((clinic.address ?? '').isNotEmpty)
-          pw.Text(clinic.address!, style: const pw.TextStyle(fontSize: 9)),
-        pw.SizedBox(height: 2),
-        pw.Row(
-          mainAxisAlignment: pw.MainAxisAlignment.center,
+        pw.Column(
+          crossAxisAlignment: pw.CrossAxisAlignment.end,
           children: [
+            if ((clinic.address ?? '').isNotEmpty)
+              pw.Text(
+                clinic.address!,
+                textAlign: pw.TextAlign.right,
+                style: const pw.TextStyle(fontSize: 8),
+              ),
             if ((clinic.phone ?? '').isNotEmpty)
               pw.Text(
                 'Ph: ${clinic.phone}',
-                style: const pw.TextStyle(fontSize: 9),
+                style: const pw.TextStyle(fontSize: 8),
               ),
-            if ((clinic.phone ?? '').isNotEmpty &&
-                (clinic.email ?? '').isNotEmpty)
-              pw.Text('   •   ', style: const pw.TextStyle(fontSize: 9)),
             if ((clinic.email ?? '').isNotEmpty)
-              pw.Text(clinic.email!, style: const pw.TextStyle(fontSize: 9)),
+              pw.Text(clinic.email!, style: const pw.TextStyle(fontSize: 8)),
           ],
         ),
       ],

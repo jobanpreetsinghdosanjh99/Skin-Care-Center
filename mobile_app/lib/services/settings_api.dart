@@ -1,3 +1,4 @@
+import '../models/footer_note.dart';
 import 'api_client.dart';
 
 class SettingsApi {
@@ -24,14 +25,37 @@ class SettingsApi {
         as Map<String, dynamic>;
   }
 
-  Future<List<String>> listFooterNotes() async {
+  Future<List<FooterNote>> listFooterNotes() async {
     final data = await _client.get('/settings/footer-notes') as List<dynamic>;
-    return data.cast<String>();
+    return data
+        .map((item) => FooterNote.fromJson(item as Map<String, dynamic>))
+        .toList();
   }
 
-  Future<void> addFooterNote(String note) async {
-    await _client.post('/settings/footer-notes', {'note': note}, expected: 201);
+  Future<FooterNote> addFooterNote(String note, {int sortOrder = 0}) async {
+    final data = await _client.post('/settings/footer-notes', {
+      'note': note,
+      'sort_order': sortOrder,
+    }, expected: 201);
+    return FooterNote.fromJson(data as Map<String, dynamic>);
   }
+
+  Future<FooterNote> updateFooterNote(
+    String noteId, {
+    required String note,
+    required int sortOrder,
+    bool isActive = true,
+  }) async {
+    final data = await _client.put('/settings/footer-notes/$noteId', {
+      'note': note,
+      'sort_order': sortOrder,
+      'is_active': isActive,
+    });
+    return FooterNote.fromJson(data as Map<String, dynamic>);
+  }
+
+  Future<void> deleteFooterNote(String noteId) =>
+      _client.delete('/settings/footer-notes/$noteId');
 
   Future<void> changePassword({
     required String currentPassword,
