@@ -163,7 +163,7 @@ class _DashboardPage extends StatelessWidget {
         crossAxisCount: MediaQuery.sizeOf(context).width > 1100 ? 4 : 2,
         crossAxisSpacing: 16,
         mainAxisSpacing: 16,
-        childAspectRatio: 1.6,
+        childAspectRatio: 2.0,
         children: const [
           _MetricCard(
             label: 'Total Patients',
@@ -208,16 +208,26 @@ class _MetricCard extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             CircleAvatar(child: Icon(icon)),
             const SizedBox(width: 16),
-            Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(label),
-                Text(value, style: Theme.of(context).textTheme.headlineSmall),
-              ],
+            Expanded(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
+                  const SizedBox(height: 4),
+                  Text(
+                    value,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.headlineSmall,
+                  ),
+                ],
+              ),
             ),
           ],
         ),
