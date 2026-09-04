@@ -194,14 +194,18 @@ class _MedicinesPageState extends State<MedicinesPage> {
                       message: 'Add a medicine to start tracking inventory.',
                     );
                   }
+                  final isMobile = MediaQuery.sizeOf(context).width < 700;
                   return GridView.builder(
-                    gridDelegate:
-                        const SliverGridDelegateWithMaxCrossAxisExtent(
-                          maxCrossAxisExtent: 300,
-                          mainAxisSpacing: AppSpacing.md,
-                          crossAxisSpacing: AppSpacing.md,
-                          childAspectRatio: 1.25,
-                        ),
+                    gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+                      maxCrossAxisExtent: 300,
+                      mainAxisSpacing: AppSpacing.md,
+                      crossAxisSpacing: AppSpacing.md,
+                      // Narrow single-column cards need more height
+                      // relative to their width than multi-column
+                      // desktop cards to fit the same content without
+                      // overflowing (name + form + stock + 2 buttons).
+                      childAspectRatio: isMobile ? 0.85 : 1.25,
+                    ),
                     itemCount: medicines.length,
                     itemBuilder: (context, index) {
                       final medicine = medicines[index];
