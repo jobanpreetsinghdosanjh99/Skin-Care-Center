@@ -6,6 +6,8 @@ import '../theme/app_theme.dart';
 import '../utils/text_format.dart';
 import '../widgets/common.dart';
 
+import 'patient_detail_page.dart';
+
 class PatientsPage extends StatefulWidget {
   const PatientsPage({super.key});
 
@@ -148,6 +150,15 @@ class _PatientsPageState extends State<PatientsPage> {
                       itemBuilder: (context, index) {
                         final patient = patients[index];
                         return ListTile(
+                          onTap: () async {
+                            await Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) =>
+                                    PatientDetailPage(patientId: patient.id),
+                              ),
+                            );
+                            _refresh();
+                          },
                           contentPadding: const EdgeInsets.symmetric(
                             horizontal: 20,
                             vertical: 6,

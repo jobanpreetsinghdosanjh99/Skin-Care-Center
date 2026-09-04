@@ -26,7 +26,9 @@ class PrescriptionItemDraft {
 }
 
 class CreatePrescriptionPage extends StatefulWidget {
-  const CreatePrescriptionPage({super.key});
+  const CreatePrescriptionPage({super.key, this.preselectedPatient});
+
+  final Patient? preselectedPatient;
 
   @override
   State<CreatePrescriptionPage> createState() => _CreatePrescriptionPageState();
@@ -55,6 +57,12 @@ class _CreatePrescriptionPageState extends State<CreatePrescriptionPage> {
   final _items = <PrescriptionItemDraft>[];
   bool _saving = false;
   String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedPatient = widget.preselectedPatient;
+  }
 
   static const _durations = [
     '10 days',

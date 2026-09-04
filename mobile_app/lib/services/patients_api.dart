@@ -16,6 +16,11 @@ class PatientsApi {
         .toList();
   }
 
+  Future<Patient> get(String patientId) async {
+    final data = await _client.get('/patients/$patientId');
+    return Patient.fromJson(data as Map<String, dynamic>);
+  }
+
   Future<Patient> create({
     required String fullName,
     required String phone,
