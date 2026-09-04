@@ -281,6 +281,7 @@ class _CreatePrescriptionPageState extends State<CreatePrescriptionPage> {
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String>(
                       initialValue: _duration,
+                      isExpanded: true,
                       decoration: const InputDecoration(
                         labelText: 'Prescription Duration',
                       ),

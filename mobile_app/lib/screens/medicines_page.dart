@@ -292,6 +292,7 @@ class _AddMedicineDialogState extends State<_AddMedicineDialog> {
               const SizedBox(height: AppSpacing.md),
               DropdownButtonFormField<String>(
                 initialValue: _form,
+                isExpanded: true,
                 decoration: const InputDecoration(labelText: 'Type'),
                 items: widget.forms
                     .map(

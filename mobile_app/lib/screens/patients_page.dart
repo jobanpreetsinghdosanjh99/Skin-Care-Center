@@ -162,9 +162,10 @@ class _SearchBar extends StatelessWidget {
           crossAxisAlignment: WrapCrossAlignment.center,
           children: [
             SizedBox(
-              width: 170,
+              width: 200,
               child: DropdownButtonFormField<String>(
                 initialValue: searchBy,
+                isExpanded: true,
                 decoration: const InputDecoration(
                   isDense: true,
                   labelText: 'Search by',
@@ -269,6 +270,7 @@ class _AddPatientDialogState extends State<_AddPatientDialog> {
               const SizedBox(height: AppSpacing.md),
               DropdownButtonFormField<String>(
                 initialValue: _gender,
+                isExpanded: true,
                 decoration: const InputDecoration(labelText: 'Gender'),
                 items: const [
                   DropdownMenuItem(value: 'male', child: Text('Male')),
