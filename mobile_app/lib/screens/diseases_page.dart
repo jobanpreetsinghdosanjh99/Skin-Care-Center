@@ -43,13 +43,20 @@ class _DiseasesPageState extends State<DiseasesPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            Wrap(
+              spacing: 16,
+              runSpacing: 12,
+              alignment: WrapAlignment.spaceBetween,
+              crossAxisAlignment: WrapCrossAlignment.center,
               children: [
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text('Diseases', style: Theme.of(context).textTheme.headlineMedium),
+                    Text(
+                      'Diseases',
+                      style: Theme.of(context).textTheme.headlineMedium,
+                    ),
                     const Text('Manage disease records'),
                   ],
                 ),
@@ -69,7 +76,9 @@ class _DiseasesPageState extends State<DiseasesPage> {
                     return const Center(child: CircularProgressIndicator());
                   }
                   if (snapshot.hasError) {
-                    return Center(child: Text('Failed to load diseases: ${snapshot.error}'));
+                    return Center(
+                      child: Text('Failed to load diseases: ${snapshot.error}'),
+                    );
                   }
                   final diseases = snapshot.data ?? [];
                   return Card(
@@ -162,12 +171,14 @@ class _AddDiseaseDialogState extends State<_AddDiseaseDialog> {
               TextFormField(
                 controller: _shortNameController,
                 decoration: const InputDecoration(labelText: 'Short Name'),
-                validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
+                validator: (v) =>
+                    (v == null || v.trim().isEmpty) ? 'Required' : null,
               ),
               TextFormField(
                 controller: _fullNameController,
                 decoration: const InputDecoration(labelText: 'Full Name'),
-                validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
+                validator: (v) =>
+                    (v == null || v.trim().isEmpty) ? 'Required' : null,
               ),
               TextFormField(
                 controller: _descriptionController,
@@ -183,7 +194,9 @@ class _AddDiseaseDialogState extends State<_AddDiseaseDialog> {
       ),
       actions: [
         TextButton(
-          onPressed: _submitting ? null : () => Navigator.of(context).pop(false),
+          onPressed: _submitting
+              ? null
+              : () => Navigator.of(context).pop(false),
           child: const Text('Cancel'),
         ),
         FilledButton(

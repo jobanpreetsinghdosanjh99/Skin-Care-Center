@@ -63,11 +63,15 @@ class _MedicinesPageState extends State<MedicinesPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            Wrap(
+              spacing: 16,
+              runSpacing: 12,
+              alignment: WrapAlignment.spaceBetween,
+              crossAxisAlignment: WrapCrossAlignment.center,
               children: [
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Text('Medicines', style: Theme.of(context).textTheme.headlineMedium),
                     const Text('Manage medicine inventory'),
@@ -81,9 +85,13 @@ class _MedicinesPageState extends State<MedicinesPage> {
               ],
             ),
             const SizedBox(height: 20),
-            Row(
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              crossAxisAlignment: WrapCrossAlignment.center,
               children: [
-                Expanded(
+                SizedBox(
+                  width: 320,
                   child: TextField(
                     controller: _searchController,
                     decoration: const InputDecoration(
@@ -94,9 +102,7 @@ class _MedicinesPageState extends State<MedicinesPage> {
                     onSubmitted: (_) => _refresh(),
                   ),
                 ),
-                const SizedBox(width: 12),
                 FilledButton(onPressed: _refresh, child: const Text('Find')),
-                const SizedBox(width: 8),
                 OutlinedButton(
                   onPressed: () {
                     _searchController.clear();

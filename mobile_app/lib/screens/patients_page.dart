@@ -53,11 +53,15 @@ class _PatientsPageState extends State<PatientsPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            Wrap(
+              spacing: 16,
+              runSpacing: 12,
+              alignment: WrapAlignment.spaceBetween,
+              crossAxisAlignment: WrapCrossAlignment.center,
               children: [
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Text('Patients', style: Theme.of(context).textTheme.headlineMedium),
                     const Text('Manage patient information'),
@@ -71,7 +75,10 @@ class _PatientsPageState extends State<PatientsPage> {
               ],
             ),
             const SizedBox(height: 20),
-            Row(
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              crossAxisAlignment: WrapCrossAlignment.center,
               children: [
                 DropdownButton<String>(
                   value: _searchBy,
@@ -85,8 +92,8 @@ class _PatientsPageState extends State<PatientsPage> {
                   ],
                   onChanged: (value) => setState(() => _searchBy = value ?? 'name'),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
+                SizedBox(
+                  width: 280,
                   child: TextField(
                     controller: _searchController,
                     decoration: const InputDecoration(
@@ -97,9 +104,7 @@ class _PatientsPageState extends State<PatientsPage> {
                     onSubmitted: (_) => _refresh(),
                   ),
                 ),
-                const SizedBox(width: 12),
                 FilledButton(onPressed: _refresh, child: const Text('Search')),
-                const SizedBox(width: 8),
                 OutlinedButton(onPressed: _clearSearch, child: const Text('Clear')),
               ],
             ),
