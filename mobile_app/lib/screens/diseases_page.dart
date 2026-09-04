@@ -83,30 +83,33 @@ class _DiseasesPageState extends State<DiseasesPage> {
                   final diseases = snapshot.data ?? [];
                   return Card(
                     child: SingleChildScrollView(
-                      child: DataTable(
-                        columns: const [
-                          DataColumn(label: Text('Short Name')),
-                          DataColumn(label: Text('Full Name')),
-                          DataColumn(label: Text('Description')),
-                          DataColumn(label: Text('Actions')),
-                        ],
-                        rows: diseases
-                            .map(
-                              (disease) => DataRow(
-                                cells: [
-                                  DataCell(Text(disease.shortName)),
-                                  DataCell(Text(disease.fullName)),
-                                  DataCell(Text(disease.description ?? '-')),
-                                  DataCell(
-                                    IconButton(
-                                      icon: const Icon(Icons.delete_outline),
-                                      onPressed: () => _delete(disease),
+                      scrollDirection: Axis.horizontal,
+                      child: SingleChildScrollView(
+                        child: DataTable(
+                          columns: const [
+                            DataColumn(label: Text('Short Name')),
+                            DataColumn(label: Text('Full Name')),
+                            DataColumn(label: Text('Description')),
+                            DataColumn(label: Text('Actions')),
+                          ],
+                          rows: diseases
+                              .map(
+                                (disease) => DataRow(
+                                  cells: [
+                                    DataCell(Text(disease.shortName)),
+                                    DataCell(Text(disease.fullName)),
+                                    DataCell(Text(disease.description ?? '-')),
+                                    DataCell(
+                                      IconButton(
+                                        icon: const Icon(Icons.delete_outline),
+                                        onPressed: () => _delete(disease),
+                                      ),
                                     ),
-                                  ),
-                                ],
-                              ),
-                            )
-                            .toList(),
+                                  ],
+                                ),
+                              )
+                              .toList(),
+                        ),
                       ),
                     ),
                   );
