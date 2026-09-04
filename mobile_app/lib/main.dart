@@ -151,7 +151,61 @@ class _ClinicShellState extends State<ClinicShell> {
 
   @override
   Widget build(BuildContext context) {
-    final isExtended = MediaQuery.sizeOf(context).width > 900;
+    final width = MediaQuery.sizeOf(context).width;
+    final isMobile = width < 700;
+    final isExtended = width > 900;
+
+    final body = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _TopBar(title: _titles[_selectedIndex]),
+        Expanded(
+          child: IndexedStack(
+            index: _selectedIndex,
+            children: [
+              for (var i = 0; i < _pages.length; i++)
+                Navigator(
+                  key: _navigatorKeys[i],
+                  onGenerateRoute: (settings) => MaterialPageRoute(
+                    settings: settings,
+                    builder: (context) => _pages[i],
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
+
+    void onSelect(int index) {
+      if (index == _selectedIndex) {
+        _navigatorKeys[index].currentState?.popUntil((route) => route.isFirst);
+      } else {
+        setState(() => _selectedIndex = index);
+      }
+    }
+
+    // Narrow (phone-sized) windows get a bottom navigation bar instead of a
+    // side rail, so page content keeps the full screen width — a side rail
+    // was squeezing patient/disease/footer content into too little space.
+    if (isMobile) {
+      return Scaffold(
+        body: SafeArea(child: body),
+        bottomNavigationBar: NavigationBar(
+          selectedIndex: _selectedIndex,
+          onDestinationSelected: onSelect,
+          destinations: [
+            for (final item in _items)
+              NavigationDestination(
+                icon: item.icon,
+                selectedIcon: item.selectedIcon,
+                label: (item.label as Text).data ?? '',
+              ),
+          ],
+        ),
+      );
+    }
+
     return Scaffold(
       body: Row(
         children: [
@@ -159,15 +213,7 @@ class _ClinicShellState extends State<ClinicShell> {
             extended: isExtended,
             minExtendedWidth: 220,
             selectedIndex: _selectedIndex,
-            onDestinationSelected: (index) {
-              if (index == _selectedIndex) {
-                _navigatorKeys[index].currentState?.popUntil(
-                  (route) => route.isFirst,
-                );
-              } else {
-                setState(() => _selectedIndex = index);
-              }
-            },
+            onDestinationSelected: onSelect,
             leading: Padding(
               padding: const EdgeInsets.symmetric(vertical: 24),
               child: Column(
@@ -206,29 +252,7 @@ class _ClinicShellState extends State<ClinicShell> {
             destinations: _items,
           ),
           const VerticalDivider(width: 1),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _TopBar(title: _titles[_selectedIndex]),
-                Expanded(
-                  child: IndexedStack(
-                    index: _selectedIndex,
-                    children: [
-                      for (var i = 0; i < _pages.length; i++)
-                        Navigator(
-                          key: _navigatorKeys[i],
-                          onGenerateRoute: (settings) => MaterialPageRoute(
-                            settings: settings,
-                            builder: (context) => _pages[i],
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
+          Expanded(child: body),
         ],
       ),
     );

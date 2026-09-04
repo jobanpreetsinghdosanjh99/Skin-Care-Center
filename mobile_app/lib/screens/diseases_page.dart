@@ -129,7 +129,7 @@ class _DiseasesPageState extends State<DiseasesPage> {
                   crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
                     SizedBox(
-                      width: 220,
+                      width: dialogWidth(context, 220),
                       child: TextField(
                         controller: _shortNameController,
                         decoration: const InputDecoration(
@@ -141,7 +141,7 @@ class _DiseasesPageState extends State<DiseasesPage> {
                       ),
                     ),
                     SizedBox(
-                      width: 220,
+                      width: dialogWidth(context, 220),
                       child: TextField(
                         controller: _fullNameController,
                         decoration: const InputDecoration(
@@ -197,6 +197,62 @@ class _DiseasesPageState extends State<DiseasesPage> {
                       icon: Icons.biotech_outlined,
                       title: 'No diseases found',
                       message: 'Add a disease to build your reference list.',
+                    );
+                  }
+                  final isMobile = MediaQuery.sizeOf(context).width < 700;
+                  if (isMobile) {
+                    return Card(
+                      clipBehavior: Clip.antiAlias,
+                      child: ListView.separated(
+                        padding: const EdgeInsets.symmetric(vertical: 4),
+                        itemCount: diseases.length,
+                        separatorBuilder: (_, _) => const Divider(height: 1),
+                        itemBuilder: (context, index) {
+                          final disease = diseases[index];
+                          return ListTile(
+                            title: Text(
+                              disease.fullName.toTitleCase,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            subtitle: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(disease.shortName.toTitleCase),
+                                if ((disease.description ?? '').isNotEmpty)
+                                  Text(
+                                    disease.description!,
+                                    maxLines: 3,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                              ],
+                            ),
+                            isThreeLine: (disease.description ?? '').isNotEmpty,
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  icon: const Icon(
+                                    Icons.edit_outlined,
+                                    color: AppTheme.primary,
+                                  ),
+                                  tooltip: 'Edit disease',
+                                  onPressed: () => _openEditDialog(disease),
+                                ),
+                                IconButton(
+                                  icon: const Icon(
+                                    Icons.delete_outline,
+                                    color: AppTheme.danger,
+                                  ),
+                                  tooltip: 'Delete disease',
+                                  onPressed: () => _delete(disease),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
                     );
                   }
                   return Card(
@@ -277,14 +333,17 @@ class _DiseasesPageState extends State<DiseasesPage> {
               ),
             ),
             const SizedBox(height: AppSpacing.sm),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            Wrap(
+              alignment: WrapAlignment.spaceBetween,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              runSpacing: 4,
               children: [
                 Text(
                   'Showing $_lastPageCount item${_lastPageCount == 1 ? '' : 's'} on page $_page',
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
                 Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     IconButton(
                       onPressed: _page > 1 ? () => _goToPage(_page - 1) : null,
@@ -372,7 +431,7 @@ class _AddDiseaseDialogState extends State<_AddDiseaseDialog> {
     return AlertDialog(
       title: Text(_isEditing ? 'Edit Disease' : 'Add New Disease'),
       content: SizedBox(
-        width: 400,
+        width: dialogWidth(context, 400),
         child: Form(
           key: _formKey,
           child: Column(

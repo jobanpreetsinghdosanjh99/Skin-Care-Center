@@ -119,7 +119,7 @@ class _SettingsPageState extends State<SettingsPage> {
           return AlertDialog(
             title: const Text('Change Password'),
             content: SizedBox(
-              width: 380,
+              width: dialogWidth(context, 380),
               child: Form(
                 key: formKey,
                 child: Column(
@@ -248,7 +248,7 @@ class _SettingsPageState extends State<SettingsPage> {
           return AlertDialog(
             title: Text(isEditing ? 'Edit Clinic' : 'Create New Clinic'),
             content: SizedBox(
-              width: 400,
+              width: dialogWidth(context, 400),
               child: Form(
                 key: formKey,
                 child: Column(
@@ -370,7 +370,7 @@ class _SettingsPageState extends State<SettingsPage> {
         builder: (context, setDialogState) => AlertDialog(
           title: const Text('Clinic List'),
           content: SizedBox(
-            width: 460,
+            width: dialogWidth(context, 460),
             height: 320,
             child: FutureBuilder<List<Map<String, dynamic>>>(
               future: _clinicsFuture,
@@ -483,7 +483,7 @@ class _SettingsPageState extends State<SettingsPage> {
       builder: (context) => AlertDialog(
         title: Text(isEditing ? 'Edit Footer Note' : 'Add Footer Note'),
         content: SizedBox(
-          width: 380,
+          width: dialogWidth(context, 380),
           child: TextField(
             controller: controller,
             decoration: const InputDecoration(labelText: 'Note'),
@@ -688,84 +688,107 @@ class _SettingsPageState extends State<SettingsPage> {
                               color: AppTheme.background,
                               borderRadius: BorderRadius.circular(10),
                             ),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.center,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Icon(
-                                  Icons.sticky_note_2_outlined,
-                                  size: 16,
-                                  color: note.isActive
-                                      ? AppTheme.primary
-                                      : Colors.grey,
-                                ),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(
-                                    note.note,
-                                    style: TextStyle(
-                                      color: note.isActive ? null : Colors.grey,
-                                      decoration: note.isActive
-                                          ? null
-                                          : TextDecoration.lineThrough,
+                                Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Icon(
+                                      Icons.sticky_note_2_outlined,
+                                      size: 16,
+                                      color: note.isActive
+                                          ? AppTheme.primary
+                                          : Colors.grey,
                                     ),
-                                  ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Padding(
+                                        padding: const EdgeInsets.only(top: 2),
+                                        child: Text(
+                                          note.note,
+                                          style: TextStyle(
+                                            color: note.isActive
+                                                ? null
+                                                : Colors.grey,
+                                            decoration: note.isActive
+                                                ? null
+                                                : TextDecoration.lineThrough,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                                IconButton(
-                                  onPressed: index == 0
-                                      ? null
-                                      : () => _moveFooterNote(notes, index, -1),
-                                  icon: const Icon(
-                                    Icons.arrow_upward_rounded,
-                                    size: 16,
-                                  ),
-                                  tooltip: 'Move up',
-                                  visualDensity: VisualDensity.compact,
-                                ),
-                                IconButton(
-                                  onPressed: index == notes.length - 1
-                                      ? null
-                                      : () => _moveFooterNote(notes, index, 1),
-                                  icon: const Icon(
-                                    Icons.arrow_downward_rounded,
-                                    size: 16,
-                                  ),
-                                  tooltip: 'Move down',
-                                  visualDensity: VisualDensity.compact,
-                                ),
-                                IconButton(
-                                  onPressed: () =>
-                                      _toggleFooterNoteActive(note),
-                                  icon: Icon(
-                                    note.isActive
-                                        ? Icons.visibility_outlined
-                                        : Icons.visibility_off_outlined,
-                                    size: 16,
-                                  ),
-                                  tooltip: note.isActive
-                                      ? 'Hide from print'
-                                      : 'Show on print',
-                                  visualDensity: VisualDensity.compact,
-                                ),
-                                IconButton(
-                                  onPressed: () =>
-                                      _openFooterNoteDialog(existing: note),
-                                  icon: const Icon(
-                                    Icons.edit_outlined,
-                                    size: 16,
-                                  ),
-                                  tooltip: 'Edit',
-                                  visualDensity: VisualDensity.compact,
-                                ),
-                                IconButton(
-                                  onPressed: () =>
-                                      _confirmDeleteFooterNote(note),
-                                  icon: const Icon(
-                                    Icons.delete_outline,
-                                    size: 16,
-                                    color: AppTheme.danger,
-                                  ),
-                                  tooltip: 'Delete',
-                                  visualDensity: VisualDensity.compact,
+                                Wrap(
+                                  alignment: WrapAlignment.end,
+                                  children: [
+                                    IconButton(
+                                      onPressed: index == 0
+                                          ? null
+                                          : () => _moveFooterNote(
+                                              notes,
+                                              index,
+                                              -1,
+                                            ),
+                                      icon: const Icon(
+                                        Icons.arrow_upward_rounded,
+                                        size: 16,
+                                      ),
+                                      tooltip: 'Move up',
+                                      visualDensity: VisualDensity.compact,
+                                    ),
+                                    IconButton(
+                                      onPressed: index == notes.length - 1
+                                          ? null
+                                          : () => _moveFooterNote(
+                                              notes,
+                                              index,
+                                              1,
+                                            ),
+                                      icon: const Icon(
+                                        Icons.arrow_downward_rounded,
+                                        size: 16,
+                                      ),
+                                      tooltip: 'Move down',
+                                      visualDensity: VisualDensity.compact,
+                                    ),
+                                    IconButton(
+                                      onPressed: () =>
+                                          _toggleFooterNoteActive(note),
+                                      icon: Icon(
+                                        note.isActive
+                                            ? Icons.visibility_outlined
+                                            : Icons.visibility_off_outlined,
+                                        size: 16,
+                                      ),
+                                      tooltip: note.isActive
+                                          ? 'Hide from print'
+                                          : 'Show on print',
+                                      visualDensity: VisualDensity.compact,
+                                    ),
+                                    IconButton(
+                                      onPressed: () =>
+                                          _openFooterNoteDialog(existing: note),
+                                      icon: const Icon(
+                                        Icons.edit_outlined,
+                                        size: 16,
+                                      ),
+                                      tooltip: 'Edit',
+                                      visualDensity: VisualDensity.compact,
+                                    ),
+                                    IconButton(
+                                      onPressed: () =>
+                                          _confirmDeleteFooterNote(note),
+                                      icon: const Icon(
+                                        Icons.delete_outline,
+                                        size: 16,
+                                        color: AppTheme.danger,
+                                      ),
+                                      tooltip: 'Delete',
+                                      visualDensity: VisualDensity.compact,
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),

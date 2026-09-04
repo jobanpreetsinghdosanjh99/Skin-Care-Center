@@ -2,6 +2,14 @@ import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
 
+/// Returns a dialog content width that never exceeds the available screen
+/// width (minus dialog insets), so fixed-width `AlertDialog` forms never
+/// overflow on narrow/mobile screens.
+double dialogWidth(BuildContext context, double preferred) {
+  final available = MediaQuery.sizeOf(context).width - 64;
+  return preferred < available ? preferred : available;
+}
+
 /// Consistent page scaffold used by every main section (Patients,
 /// Medicines, Diseases, Prescriptions, Settings, Dashboard).
 ///

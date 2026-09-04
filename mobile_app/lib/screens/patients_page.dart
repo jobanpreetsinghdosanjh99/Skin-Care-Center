@@ -266,7 +266,7 @@ class _SearchBar extends StatelessWidget {
           crossAxisAlignment: WrapCrossAlignment.center,
           children: [
             SizedBox(
-              width: 200,
+              width: dialogWidth(context, 200),
               child: DropdownButtonFormField<String>(
                 initialValue: searchBy,
                 isExpanded: true,
@@ -286,7 +286,7 @@ class _SearchBar extends StatelessWidget {
               ),
             ),
             SizedBox(
-              width: 280,
+              width: dialogWidth(context, 280),
               child: TextField(
                 controller: controller,
                 decoration: const InputDecoration(
@@ -376,7 +376,7 @@ class _AddPatientDialogState extends State<_AddPatientDialog> {
     return AlertDialog(
       title: Text(_isEditing ? 'Edit Patient' : 'Add New Patient'),
       content: SizedBox(
-        width: 420,
+        width: dialogWidth(context, 420),
         child: Form(
           key: _formKey,
           child: Column(

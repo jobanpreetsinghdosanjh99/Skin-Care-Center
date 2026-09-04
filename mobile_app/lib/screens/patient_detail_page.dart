@@ -319,8 +319,10 @@ class _InfoTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final maxWidth =
+        MediaQuery.sizeOf(context).width - (AppSpacing.xl * 2) - 40;
     return SizedBox(
-      width: 200,
+      width: maxWidth < 200 ? maxWidth : 200,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -407,7 +409,7 @@ class _PatientEditDialogState extends State<_PatientEditDialog> {
     return AlertDialog(
       title: const Text('Edit Patient'),
       content: SizedBox(
-        width: 420,
+        width: dialogWidth(context, 420),
         child: Form(
           key: _formKey,
           child: Column(
