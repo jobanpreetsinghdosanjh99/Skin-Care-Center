@@ -5,6 +5,9 @@ import '../models/patient.dart';
 import '../services/medicines_api.dart';
 import '../services/patients_api.dart';
 import '../services/prescriptions_api.dart';
+import '../theme/app_theme.dart';
+import '../utils/text_format.dart';
+import '../widgets/common.dart';
 
 class PrescriptionItemDraft {
   PrescriptionItemDraft({
@@ -49,7 +52,14 @@ class _CreatePrescriptionPageState extends State<CreatePrescriptionPage> {
   bool _saving = false;
   String? _error;
 
-  static const _durations = ['10 days', '15 days', '20 days', '7 days', '1 month', 'weekly'];
+  static const _durations = [
+    '10 days',
+    '15 days',
+    '20 days',
+    '7 days',
+    '1 month',
+    'weekly',
+  ];
 
   Future<void> _searchPatients(String query) async {
     if (query.trim().isEmpty) {
@@ -66,7 +76,9 @@ class _CreatePrescriptionPageState extends State<CreatePrescriptionPage> {
   }
 
   void _addItem() {
-    if (_selectedMedicine == null || _dosageController.text.trim().isEmpty) return;
+    if (_selectedMedicine == null || _dosageController.text.trim().isEmpty) {
+      return;
+    }
     final quantity = int.tryParse(_quantityController.text.trim()) ?? 0;
     if (quantity <= 0) return;
 
@@ -79,7 +91,7 @@ class _CreatePrescriptionPageState extends State<CreatePrescriptionPage> {
           quantity: quantity,
           instructions: _instructionsController.text.trim().isEmpty
               ? null
-              : _instructionsController.text.trim(),
+              : _instructionsController.text.trim().toSentenceCase,
         ),
       );
       _selectedMedicine = null;
@@ -87,6 +99,10 @@ class _CreatePrescriptionPageState extends State<CreatePrescriptionPage> {
       _quantityController.text = '1';
       _instructionsController.clear();
     });
+  }
+
+  void _removeItem(int index) {
+    setState(() => _items.removeAt(index));
   }
 
   Future<void> _savePrescription() async {
@@ -117,9 +133,12 @@ class _CreatePrescriptionPageState extends State<CreatePrescriptionPage> {
           _selectedPatient = null;
           _patientSearchController.clear();
         });
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Prescription saved')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Prescription saved successfully'),
+            backgroundColor: AppTheme.success,
+          ),
+        );
       }
     } catch (e) {
       setState(() => _error = e.toString());
@@ -132,31 +151,72 @@ class _CreatePrescriptionPageState extends State<CreatePrescriptionPage> {
   Widget build(BuildContext context) {
     return SafeArea(
       child: SingleChildScrollView(
-        padding: const EdgeInsets.all(32),
+        padding: const EdgeInsets.all(AppSpacing.xl),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Create Prescription', style: Theme.of(context).textTheme.headlineMedium),
-            const SizedBox(height: 20),
+            const PageHeader(
+              title: 'Create Prescription',
+              subtitle: 'Search a patient, then add medicines to prescribe',
+            ),
+            const SizedBox(height: AppSpacing.lg),
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(20),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Patient', style: Theme.of(context).textTheme.titleMedium),
-                    const SizedBox(height: 8),
-                    if (_selectedPatient != null)
-                      ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        leading: const Icon(Icons.person),
-                        title: Text(_selectedPatient!.fullName),
-                        subtitle: Text(
-                          '${_selectedPatient!.patientNumber} • ${_selectedPatient!.phone}',
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.person_search_rounded,
+                          size: 18,
+                          color: AppTheme.primary,
                         ),
-                        trailing: TextButton(
-                          onPressed: () => setState(() => _selectedPatient = null),
-                          child: const Text('Change'),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Patient',
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    if (_selectedPatient != null)
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppTheme.background,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          children: [
+                            InitialsAvatar(text: _selectedPatient!.fullName),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    _selectedPatient!.fullName.toTitleCase,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  Text(
+                                    '${_selectedPatient!.patientNumber} • ${_selectedPatient!.phone}',
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.bodySmall,
+                                  ),
+                                ],
+                              ),
+                            ),
+                            TextButton(
+                              onPressed: () =>
+                                  setState(() => _selectedPatient = null),
+                              child: const Text('Change'),
+                            ),
+                          ],
                         ),
                       )
                     else ...[
@@ -165,121 +225,197 @@ class _CreatePrescriptionPageState extends State<CreatePrescriptionPage> {
                         decoration: const InputDecoration(
                           prefixIcon: Icon(Icons.search),
                           hintText: 'Search patient by name...',
-                          border: OutlineInputBorder(),
                         ),
                         onChanged: _searchPatients,
                       ),
-                      ..._patientResults.map(
-                        (patient) => ListTile(
-                          title: Text(patient.fullName),
-                          subtitle: Text('${patient.patientNumber} • ${patient.phone}'),
-                          onTap: () => setState(() {
-                            _selectedPatient = patient;
-                            _patientResults = [];
-                          }),
+                      if (_patientResults.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: Column(
+                            children: _patientResults
+                                .map(
+                                  (patient) => ListTile(
+                                    contentPadding: EdgeInsets.zero,
+                                    leading: InitialsAvatar(
+                                      text: patient.fullName,
+                                    ),
+                                    title: Text(patient.fullName.toTitleCase),
+                                    subtitle: Text(
+                                      '${patient.patientNumber} • ${patient.phone}',
+                                    ),
+                                    onTap: () => setState(() {
+                                      _selectedPatient = patient;
+                                      _patientResults = [];
+                                    }),
+                                  ),
+                                )
+                                .toList(),
+                          ),
                         ),
-                      ),
                     ],
                   ],
                 ),
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: AppSpacing.lg),
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(20),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.medication_rounded,
+                          size: 18,
+                          color: AppTheme.secondary,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Add Medicine',
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
                     DropdownButtonFormField<String>(
                       initialValue: _duration,
-                      decoration: const InputDecoration(labelText: 'Prescription Duration'),
+                      decoration: const InputDecoration(
+                        labelText: 'Prescription Duration',
+                      ),
                       items: _durations
-                          .map((d) => DropdownMenuItem(value: d, child: Text(d)))
+                          .map(
+                            (d) => DropdownMenuItem(
+                              value: d,
+                              child: Text(d.toTitleCase),
+                            ),
+                          )
                           .toList(),
                       onChanged: (value) => setState(() => _duration = value),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: AppSpacing.md),
                     Autocomplete<Medicine>(
-                      displayStringForOption: (m) => m.name,
+                      displayStringForOption: (m) => m.name.toTitleCase,
                       optionsBuilder: (value) async {
                         await _searchMedicines(value.text);
                         return _medicineOptions;
                       },
-                      onSelected: (medicine) => setState(() => _selectedMedicine = medicine),
-                      fieldViewBuilder: (context, controller, focusNode, onSubmit) {
-                        return TextField(
-                          controller: controller,
-                          focusNode: focusNode,
-                          decoration: const InputDecoration(labelText: 'Medicine'),
-                        );
-                      },
+                      onSelected: (medicine) =>
+                          setState(() => _selectedMedicine = medicine),
+                      fieldViewBuilder:
+                          (context, controller, focusNode, onSubmit) {
+                            return TextField(
+                              controller: controller,
+                              focusNode: focusNode,
+                              decoration: const InputDecoration(
+                                labelText: 'Medicine',
+                                prefixIcon: Icon(Icons.search),
+                              ),
+                            );
+                          },
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: AppSpacing.md),
                     TextField(
                       controller: _dosageController,
                       decoration: const InputDecoration(labelText: 'Dosage'),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: AppSpacing.md),
                     TextField(
                       controller: _quantityController,
                       decoration: const InputDecoration(labelText: 'Quantity'),
                       keyboardType: TextInputType.number,
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: AppSpacing.md),
                     TextField(
                       controller: _instructionsController,
                       decoration: const InputDecoration(
                         labelText: 'Instructions (optional)',
                         hintText: 'e.g. Apply twice daily',
                       ),
+                      textCapitalization: TextCapitalization.sentences,
                     ),
-                    const SizedBox(height: 12),
-                    FilledButton(
-                      onPressed: _selectedMedicine == null ? null : _addItem,
-                      child: const Text('Add to Prescription'),
+                    const SizedBox(height: AppSpacing.md),
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton.icon(
+                        onPressed: _selectedMedicine == null ? null : _addItem,
+                        icon: const Icon(Icons.add_rounded, size: 18),
+                        label: const Text('Add to Prescription'),
+                      ),
                     ),
                   ],
                 ),
               ),
             ),
-            const SizedBox(height: 20),
-            Text('Prescription Items', style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: AppSpacing.lg),
+            Text(
+              'Prescription Items (${_items.length})',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: AppSpacing.sm),
             if (_items.isEmpty)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 12),
-                child: Text('No items added yet.'),
+              const EmptyState(
+                icon: Icons.receipt_long_outlined,
+                title: 'No items added yet',
+                message: 'Search a medicine above and add it to the list.',
               )
             else
               Column(
-                children: _items
-                    .map(
-                      (item) => Card(
-                        child: ListTile(
-                          title: Text(item.medicineName),
-                          subtitle: Text('${item.dosage} • Qty: ${item.quantity}'),
-                        ),
+                children: _items.asMap().entries.map((entry) {
+                  final index = entry.key;
+                  final item = entry.value;
+                  return Card(
+                    margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+                    child: ListTile(
+                      leading: const CircleAvatar(
+                        backgroundColor: AppTheme.primaryLight,
+                        foregroundColor: Colors.white,
+                        child: Icon(Icons.medication, size: 18),
                       ),
-                    )
-                    .toList(),
+                      title: Text(
+                        item.medicineName.toTitleCase,
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                      subtitle: Text(
+                        '${item.dosage} • Qty: ${item.quantity}'
+                        '${item.instructions != null ? ' • ${item.instructions}' : ''}',
+                      ),
+                      trailing: IconButton(
+                        icon: const Icon(
+                          Icons.delete_outline,
+                          color: AppTheme.danger,
+                        ),
+                        onPressed: () => _removeItem(index),
+                      ),
+                    ),
+                  );
+                }).toList(),
               ),
-            const SizedBox(height: 20),
-            if (_error != null)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: Text(_error!, style: const TextStyle(color: Colors.red)),
+            const SizedBox(height: AppSpacing.lg),
+            if (_error != null) ...[
+              ErrorBanner(message: _error!),
+              const SizedBox(height: AppSpacing.md),
+            ],
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed:
+                    (_selectedPatient == null || _items.isEmpty || _saving)
+                    ? null
+                    : _savePrescription,
+                icon: _saving
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Icon(Icons.save_rounded, size: 18),
+                label: Text(_saving ? 'Saving...' : 'Save Prescription'),
               ),
-            FilledButton(
-              onPressed: (_selectedPatient == null || _items.isEmpty || _saving)
-                  ? null
-                  : _savePrescription,
-              child: _saving
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Text('Save Prescription'),
             ),
           ],
         ),

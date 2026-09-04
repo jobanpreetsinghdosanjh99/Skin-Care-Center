@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../models/disease.dart';
 import '../services/diseases_api.dart';
+import '../theme/app_theme.dart';
+import '../utils/text_format.dart';
+import '../widgets/common.dart';
 
 class DiseasesPage extends StatefulWidget {
   const DiseasesPage({super.key});
@@ -43,76 +46,98 @@ class _DiseasesPageState extends State<DiseasesPage> {
   Widget build(BuildContext context) {
     return SafeArea(
       child: Padding(
-        padding: const EdgeInsets.all(32),
+        padding: const EdgeInsets.all(AppSpacing.xl),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Wrap(
-              spacing: 16,
-              runSpacing: 12,
-              alignment: WrapAlignment.spaceBetween,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      'Diseases',
-                      style: Theme.of(context).textTheme.headlineMedium,
-                    ),
-                    const Text('Manage disease records'),
-                  ],
-                ),
-                FilledButton.icon(
-                  onPressed: _openAddDialog,
-                  icon: const Icon(Icons.add),
-                  label: const Text('Add Disease'),
-                ),
-              ],
+            PageHeader(
+              title: 'Diseases',
+              subtitle: 'Maintain the clinic\'s disease reference list',
+              action: FilledButton.icon(
+                onPressed: _openAddDialog,
+                icon: const Icon(Icons.add_rounded, size: 18),
+                label: const Text('Add Disease'),
+              ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: AppSpacing.lg),
             Expanded(
               child: FutureBuilder<List<Disease>>(
                 future: _future,
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
+                    return const AppLoader();
                   }
                   if (snapshot.hasError) {
-                    return Center(
-                      child: Text('Failed to load diseases: ${snapshot.error}'),
+                    return EmptyState(
+                      icon: Icons.error_outline,
+                      title: 'Failed to load diseases',
+                      message: '${snapshot.error}',
                     );
                   }
                   final diseases = snapshot.data ?? [];
+                  if (diseases.isEmpty) {
+                    return const EmptyState(
+                      icon: Icons.biotech_outlined,
+                      title: 'No diseases found',
+                      message: 'Add a disease to build your reference list.',
+                    );
+                  }
                   return Card(
+                    clipBehavior: Clip.antiAlias,
                     child: SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
-                      child: SingleChildScrollView(
-                        child: DataTable(
-                          columns: const [
-                            DataColumn(label: Text('Short Name')),
-                            DataColumn(label: Text('Full Name')),
-                            DataColumn(label: Text('Description')),
-                            DataColumn(label: Text('Actions')),
-                          ],
-                          rows: diseases
-                              .map(
-                                (disease) => DataRow(
-                                  cells: [
-                                    DataCell(Text(disease.shortName)),
-                                    DataCell(Text(disease.fullName)),
-                                    DataCell(Text(disease.description ?? '-')),
-                                    DataCell(
-                                      IconButton(
-                                        icon: const Icon(Icons.delete_outline),
-                                        onPressed: () => _delete(disease),
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(
+                          minWidth: MediaQuery.sizeOf(context).width,
+                        ),
+                        child: SingleChildScrollView(
+                          child: DataTable(
+                            columns: const [
+                              DataColumn(label: Text('Short Name')),
+                              DataColumn(label: Text('Full Name')),
+                              DataColumn(label: Text('Description')),
+                              DataColumn(label: Text('Actions')),
+                            ],
+                            rows: diseases
+                                .map(
+                                  (disease) => DataRow(
+                                    cells: [
+                                      DataCell(
+                                        Text(disease.shortName.toTitleCase),
                                       ),
-                                    ),
-                                  ],
-                                ),
-                              )
-                              .toList(),
+                                      DataCell(
+                                        Text(
+                                          disease.fullName.toTitleCase,
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ),
+                                      DataCell(
+                                        SizedBox(
+                                          width: 280,
+                                          child: Text(
+                                            disease.description ?? '—',
+                                            maxLines: 2,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                      ),
+                                      DataCell(
+                                        IconButton(
+                                          icon: const Icon(
+                                            Icons.delete_outline,
+                                            color: AppTheme.danger,
+                                          ),
+                                          tooltip: 'Delete disease',
+                                          onPressed: () => _delete(disease),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                )
+                                .toList(),
+                          ),
                         ),
                       ),
                     ),
@@ -150,11 +175,11 @@ class _AddDiseaseDialogState extends State<_AddDiseaseDialog> {
     });
     try {
       await DiseasesApi().create(
-        shortName: _shortNameController.text.trim(),
-        fullName: _fullNameController.text.trim(),
+        shortName: _shortNameController.text.trim().toTitleCase,
+        fullName: _fullNameController.text.trim().toTitleCase,
         description: _descriptionController.text.trim().isEmpty
             ? null
-            : _descriptionController.text.trim(),
+            : _descriptionController.text.trim().toSentenceCase,
       );
       if (mounted) Navigator.of(context).pop(true);
     } catch (e) {
@@ -178,22 +203,28 @@ class _AddDiseaseDialogState extends State<_AddDiseaseDialog> {
               TextFormField(
                 controller: _shortNameController,
                 decoration: const InputDecoration(labelText: 'Short Name'),
+                textCapitalization: TextCapitalization.words,
                 validator: (v) =>
                     (v == null || v.trim().isEmpty) ? 'Required' : null,
               ),
+              const SizedBox(height: AppSpacing.md),
               TextFormField(
                 controller: _fullNameController,
                 decoration: const InputDecoration(labelText: 'Full Name'),
+                textCapitalization: TextCapitalization.words,
                 validator: (v) =>
                     (v == null || v.trim().isEmpty) ? 'Required' : null,
               ),
+              const SizedBox(height: AppSpacing.md),
               TextFormField(
                 controller: _descriptionController,
                 decoration: const InputDecoration(labelText: 'Description'),
+                textCapitalization: TextCapitalization.sentences,
+                maxLines: 2,
               ),
               if (_error != null) ...[
-                const SizedBox(height: 8),
-                Text(_error!, style: const TextStyle(color: Colors.red)),
+                const SizedBox(height: AppSpacing.sm),
+                ErrorBanner(message: _error!),
               ],
             ],
           ),
@@ -212,7 +243,10 @@ class _AddDiseaseDialogState extends State<_AddDiseaseDialog> {
               ? const SizedBox(
                   width: 16,
                   height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2),
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
                 )
               : const Text('Save'),
         ),

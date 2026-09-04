@@ -11,7 +11,9 @@ class PatientsApi {
     if (search != null && search.isNotEmpty) query['search'] = search;
 
     final data = await _client.get('/patients', query) as List<dynamic>;
-    return data.map((item) => Patient.fromJson(item as Map<String, dynamic>)).toList();
+    return data
+        .map((item) => Patient.fromJson(item as Map<String, dynamic>))
+        .toList();
   }
 
   Future<Patient> create({

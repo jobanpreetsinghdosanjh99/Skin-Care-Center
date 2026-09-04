@@ -10,10 +10,16 @@ class MedicinesApi {
     final query = <String, String>{};
     if (search != null && search.isNotEmpty) query['search'] = search;
     final data = await _client.get('/medicines', query) as List<dynamic>;
-    return data.map((item) => Medicine.fromJson(item as Map<String, dynamic>)).toList();
+    return data
+        .map((item) => Medicine.fromJson(item as Map<String, dynamic>))
+        .toList();
   }
 
-  Future<Medicine> create({required String name, required String form, int currentStock = 0}) async {
+  Future<Medicine> create({
+    required String name,
+    required String form,
+    int currentStock = 0,
+  }) async {
     final data = await _client.post('/medicines', {
       'name': name,
       'form': form,
@@ -22,15 +28,20 @@ class MedicinesApi {
     return Medicine.fromJson(data as Map<String, dynamic>);
   }
 
-  Future<Medicine> adjustStock(String medicineId, int quantityDelta, {String? note}) async {
-    final data = await _client.post('/medicines/$medicineId/stock-adjustments', {
-      'quantity_delta': quantityDelta,
-      'note': note,
-    });
+  Future<Medicine> adjustStock(
+    String medicineId,
+    int quantityDelta, {
+    String? note,
+  }) async {
+    final data = await _client.post(
+      '/medicines/$medicineId/stock-adjustments',
+      {'quantity_delta': quantityDelta, 'note': note},
+    );
     return Medicine.fromJson(data as Map<String, dynamic>);
   }
 
   Future<List<dynamic>> stockHistory(String medicineId) async {
-    return await _client.get('/medicines/$medicineId/stock-movements') as List<dynamic>;
+    return await _client.get('/medicines/$medicineId/stock-movements')
+        as List<dynamic>;
   }
 }

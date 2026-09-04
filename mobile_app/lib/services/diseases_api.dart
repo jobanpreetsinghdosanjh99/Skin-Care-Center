@@ -6,15 +6,26 @@ class DiseasesApi {
 
   final ApiClient _client;
 
-  Future<List<Disease>> list({String? shortName, String? fullName, int page = 1}) async {
+  Future<List<Disease>> list({
+    String? shortName,
+    String? fullName,
+    int page = 1,
+  }) async {
     final query = <String, String>{'page': '$page'};
-    if (shortName != null && shortName.isNotEmpty) query['short_name'] = shortName;
+    if (shortName != null && shortName.isNotEmpty)
+      query['short_name'] = shortName;
     if (fullName != null && fullName.isNotEmpty) query['full_name'] = fullName;
     final data = await _client.get('/diseases', query) as List<dynamic>;
-    return data.map((item) => Disease.fromJson(item as Map<String, dynamic>)).toList();
+    return data
+        .map((item) => Disease.fromJson(item as Map<String, dynamic>))
+        .toList();
   }
 
-  Future<Disease> create({required String shortName, required String fullName, String? description}) async {
+  Future<Disease> create({
+    required String shortName,
+    required String fullName,
+    String? description,
+  }) async {
     final data = await _client.post('/diseases', {
       'short_name': shortName,
       'full_name': fullName,
@@ -23,5 +34,6 @@ class DiseasesApi {
     return Disease.fromJson(data as Map<String, dynamic>);
   }
 
-  Future<void> delete(String diseaseId) => _client.delete('/diseases/$diseaseId');
+  Future<void> delete(String diseaseId) =>
+      _client.delete('/diseases/$diseaseId');
 }

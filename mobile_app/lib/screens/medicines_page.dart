@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../models/medicine.dart';
 import '../services/medicines_api.dart';
+import '../theme/app_theme.dart';
+import '../utils/text_format.dart';
+import '../widgets/common.dart';
 
 class MedicinesPage extends StatefulWidget {
   const MedicinesPage({super.key});
@@ -61,132 +64,167 @@ class _MedicinesPageState extends State<MedicinesPage> {
   Widget build(BuildContext context) {
     return SafeArea(
       child: Padding(
-        padding: const EdgeInsets.all(32),
+        padding: const EdgeInsets.all(AppSpacing.xl),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Wrap(
-              spacing: 16,
-              runSpacing: 12,
-              alignment: WrapAlignment.spaceBetween,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
+            PageHeader(
+              title: 'Medicines',
+              subtitle: 'Track and manage your medicine inventory',
+              action: FilledButton.icon(
+                onPressed: _openAddMedicineDialog,
+                icon: const Icon(Icons.add_rounded, size: 18),
+                label: const Text('Add Medicine'),
+              ),
+            ),
+            const SizedBox(height: AppSpacing.lg),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Wrap(
+                  spacing: AppSpacing.sm,
+                  runSpacing: AppSpacing.sm,
+                  crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
-                    Text(
-                      'Medicines',
-                      style: Theme.of(context).textTheme.headlineMedium,
+                    SizedBox(
+                      width: 320,
+                      child: TextField(
+                        controller: _searchController,
+                        decoration: const InputDecoration(
+                          isDense: true,
+                          prefixIcon: Icon(Icons.search),
+                          hintText: 'Search medicines by name...',
+                        ),
+                        onSubmitted: (_) => _refresh(),
+                      ),
                     ),
-                    const Text('Manage medicine inventory'),
+                    FilledButton(
+                      onPressed: _refresh,
+                      child: const Text('Find'),
+                    ),
+                    OutlinedButton(
+                      onPressed: () {
+                        _searchController.clear();
+                        _refresh();
+                      },
+                      child: const Text('Clear'),
+                    ),
                   ],
                 ),
-                FilledButton.icon(
-                  onPressed: _openAddMedicineDialog,
-                  icon: const Icon(Icons.add),
-                  label: const Text('Add Medicine'),
-                ),
-              ],
+              ),
             ),
-            const SizedBox(height: 20),
-            Wrap(
-              spacing: 12,
-              runSpacing: 12,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                SizedBox(
-                  width: 320,
-                  child: TextField(
-                    controller: _searchController,
-                    decoration: const InputDecoration(
-                      prefixIcon: Icon(Icons.search),
-                      hintText: 'Search medicines by name...',
-                      border: OutlineInputBorder(),
-                    ),
-                    onSubmitted: (_) => _refresh(),
-                  ),
-                ),
-                FilledButton(onPressed: _refresh, child: const Text('Find')),
-                OutlinedButton(
-                  onPressed: () {
-                    _searchController.clear();
-                    _refresh();
-                  },
-                  child: const Text('Cancel'),
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
+            const SizedBox(height: AppSpacing.lg),
             Expanded(
               child: FutureBuilder<List<Medicine>>(
                 future: _future,
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
+                    return const AppLoader();
                   }
                   if (snapshot.hasError) {
-                    return Center(
-                      child: Text(
-                        'Failed to load medicines: ${snapshot.error}',
-                      ),
+                    return EmptyState(
+                      icon: Icons.error_outline,
+                      title: 'Failed to load medicines',
+                      message: '${snapshot.error}',
                     );
                   }
                   final medicines = snapshot.data ?? [];
                   if (medicines.isEmpty) {
-                    return const Center(child: Text('No medicines found.'));
+                    return const EmptyState(
+                      icon: Icons.medication_outlined,
+                      title: 'No medicines found',
+                      message: 'Add a medicine to start tracking inventory.',
+                    );
                   }
                   return GridView.builder(
                     gridDelegate:
                         const SliverGridDelegateWithMaxCrossAxisExtent(
-                          maxCrossAxisExtent: 280,
-                          mainAxisSpacing: 16,
-                          crossAxisSpacing: 16,
-                          childAspectRatio: 1.3,
+                          maxCrossAxisExtent: 300,
+                          mainAxisSpacing: AppSpacing.md,
+                          crossAxisSpacing: AppSpacing.md,
+                          childAspectRatio: 1.25,
                         ),
                     itemCount: medicines.length,
                     itemBuilder: (context, index) {
                       final medicine = medicines[index];
-                      return Card(
-                        child: Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  const Icon(Icons.medication),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: Text(
-                                      medicine.name,
-                                      style: Theme.of(
-                                        context,
-                                      ).textTheme.titleMedium,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              Text(medicine.form),
-                              const Spacer(),
-                              Text('Stock: ${medicine.currentStock}'),
-                              const SizedBox(height: 8),
-                              Align(
-                                alignment: Alignment.centerRight,
-                                child: TextButton(
-                                  onPressed: () =>
-                                      _openAdjustStockDialog(medicine),
-                                  child: const Text('Adjust Stock'),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
+                      return _MedicineCard(
+                        medicine: medicine,
+                        onAdjustStock: () => _openAdjustStockDialog(medicine),
                       );
                     },
                   );
                 },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _MedicineCard extends StatelessWidget {
+  const _MedicineCard({required this.medicine, required this.onAdjustStock});
+
+  final Medicine medicine;
+  final VoidCallback onAdjustStock;
+
+  @override
+  Widget build(BuildContext context) {
+    final stock = medicine.currentStock;
+    final Color stockColor = stock <= 0
+        ? AppTheme.danger
+        : stock <= 10
+        ? AppTheme.warning
+        : AppTheme.success;
+    final String stockLabel = stock <= 0
+        ? 'Out of Stock'
+        : stock <= 10
+        ? 'Low Stock'
+        : 'In Stock';
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                InitialsAvatar(text: medicine.name, icon: Icons.medication),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    medicine.name.toTitleCase,
+                    style: Theme.of(context).textTheme.titleMedium,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Text(
+              medicine.form.toTitleCase,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            const Spacer(),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Stock: $stock',
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+                StatusPill(label: stockLabel, color: stockColor),
+              ],
+            ),
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton(
+                onPressed: onAdjustStock,
+                child: const Text('Adjust Stock'),
               ),
             ),
           ],
@@ -221,7 +259,7 @@ class _AddMedicineDialogState extends State<_AddMedicineDialog> {
     });
     try {
       await MedicinesApi().create(
-        name: _nameController.text.trim(),
+        name: _nameController.text.trim().toTitleCase,
         form: _form!,
         currentStock: int.tryParse(_stockController.text.trim()) ?? 0,
       );
@@ -247,26 +285,34 @@ class _AddMedicineDialogState extends State<_AddMedicineDialog> {
               TextFormField(
                 controller: _nameController,
                 decoration: const InputDecoration(labelText: 'Medicine Name'),
+                textCapitalization: TextCapitalization.words,
                 validator: (v) =>
                     (v == null || v.trim().isEmpty) ? 'Required' : null,
               ),
+              const SizedBox(height: AppSpacing.md),
               DropdownButtonFormField<String>(
                 initialValue: _form,
                 decoration: const InputDecoration(labelText: 'Type'),
                 items: widget.forms
-                    .map((f) => DropdownMenuItem(value: f, child: Text(f)))
+                    .map(
+                      (f) => DropdownMenuItem(
+                        value: f,
+                        child: Text(f.toTitleCase),
+                      ),
+                    )
                     .toList(),
                 onChanged: (value) => setState(() => _form = value),
                 validator: (v) => v == null ? 'Required' : null,
               ),
+              const SizedBox(height: AppSpacing.md),
               TextFormField(
                 controller: _stockController,
                 decoration: const InputDecoration(labelText: 'Stock'),
                 keyboardType: TextInputType.number,
               ),
               if (_error != null) ...[
-                const SizedBox(height: 8),
-                Text(_error!, style: const TextStyle(color: Colors.red)),
+                const SizedBox(height: AppSpacing.sm),
+                ErrorBanner(message: _error!),
               ],
             ],
           ),
@@ -285,7 +331,10 @@ class _AddMedicineDialogState extends State<_AddMedicineDialog> {
               ? const SizedBox(
                   width: 16,
                   height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2),
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
                 )
               : const Text('Add Medicine'),
         ),
@@ -325,7 +374,7 @@ class _AdjustStockDialogState extends State<_AdjustStockDialog> {
         delta,
         note: _noteController.text.trim().isEmpty
             ? null
-            : _noteController.text.trim(),
+            : _noteController.text.trim().toSentenceCase,
       );
       if (mounted) Navigator.of(context).pop(true);
     } catch (e) {
@@ -338,28 +387,33 @@ class _AdjustStockDialogState extends State<_AdjustStockDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text('Adjust Stock — ${widget.medicine.name}'),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text('Current stock: ${widget.medicine.currentStock}'),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _deltaController,
-            decoration: const InputDecoration(
-              labelText: 'Quantity change (+ add, - remove)',
+      title: Text('Adjust Stock — ${widget.medicine.name.toTitleCase}'),
+      content: SizedBox(
+        width: 360,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Current stock: ${widget.medicine.currentStock}'),
+            const SizedBox(height: AppSpacing.md),
+            TextField(
+              controller: _deltaController,
+              decoration: const InputDecoration(
+                labelText: 'Quantity change (+ add, - remove)',
+              ),
+              keyboardType: const TextInputType.numberWithOptions(signed: true),
             ),
-            keyboardType: const TextInputType.numberWithOptions(signed: true),
-          ),
-          TextField(
-            controller: _noteController,
-            decoration: const InputDecoration(labelText: 'Note (optional)'),
-          ),
-          if (_error != null) ...[
-            const SizedBox(height: 8),
-            Text(_error!, style: const TextStyle(color: Colors.red)),
+            const SizedBox(height: AppSpacing.md),
+            TextField(
+              controller: _noteController,
+              decoration: const InputDecoration(labelText: 'Note (optional)'),
+            ),
+            if (_error != null) ...[
+              const SizedBox(height: AppSpacing.sm),
+              ErrorBanner(message: _error!),
+            ],
           ],
-        ],
+        ),
       ),
       actions: [
         TextButton(
@@ -374,7 +428,10 @@ class _AdjustStockDialogState extends State<_AdjustStockDialog> {
               ? const SizedBox(
                   width: 16,
                   height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2),
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
                 )
               : const Text('Save'),
         ),

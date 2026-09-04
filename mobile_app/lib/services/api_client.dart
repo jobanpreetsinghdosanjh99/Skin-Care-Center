@@ -22,9 +22,8 @@ class ApiClient {
 
   final http.Client _client;
 
-  Uri uri(String path, [Map<String, String>? query]) => Uri.parse(
-    '${ApiConfig.baseUrl}$path',
-  ).replace(queryParameters: query);
+  Uri uri(String path, [Map<String, String>? query]) =>
+      Uri.parse('${ApiConfig.baseUrl}$path').replace(queryParameters: query);
 
   Future<dynamic> get(String path, [Map<String, String>? query]) async {
     final response = await _client.get(uri(path, query));
@@ -32,7 +31,11 @@ class ApiClient {
     return response.body.isEmpty ? null : jsonDecode(response.body);
   }
 
-  Future<dynamic> post(String path, Map<String, dynamic> body, {int expected = 200}) async {
+  Future<dynamic> post(
+    String path,
+    Map<String, dynamic> body, {
+    int expected = 200,
+  }) async {
     final response = await _client.post(
       uri(path),
       headers: {'Content-Type': 'application/json'},
@@ -59,7 +62,9 @@ class ApiClient {
 
   void _ensureOk(http.Response response, {int expected = 200}) {
     if (response.statusCode != expected) {
-      throw ApiException('Request failed (${response.statusCode}): ${response.body}');
+      throw ApiException(
+        'Request failed (${response.statusCode}): ${response.body}',
+      );
     }
   }
 }

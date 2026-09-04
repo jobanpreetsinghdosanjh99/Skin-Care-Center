@@ -16,11 +16,12 @@ class SettingsApi {
     String? address,
   }) async {
     return await _client.put('/settings/clinic', {
-      'name': name,
-      'phone': phone,
-      'email': email,
-      'address': address,
-    }) as Map<String, dynamic>;
+          'name': name,
+          'phone': phone,
+          'email': email,
+          'address': address,
+        })
+        as Map<String, dynamic>;
   }
 
   Future<List<String>> listFooterNotes() async {

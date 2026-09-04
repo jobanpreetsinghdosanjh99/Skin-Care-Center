@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../models/patient.dart';
 import '../services/patients_api.dart';
+import '../theme/app_theme.dart';
+import '../utils/text_format.dart';
+import '../widgets/common.dart';
 
 class PatientsPage extends StatefulWidget {
   const PatientsPage({super.key});
@@ -49,93 +52,76 @@ class _PatientsPageState extends State<PatientsPage> {
   Widget build(BuildContext context) {
     return SafeArea(
       child: Padding(
-        padding: const EdgeInsets.all(32),
+        padding: const EdgeInsets.all(AppSpacing.xl),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Wrap(
-              spacing: 16,
-              runSpacing: 12,
-              alignment: WrapAlignment.spaceBetween,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text('Patients', style: Theme.of(context).textTheme.headlineMedium),
-                    const Text('Manage patient information'),
-                  ],
-                ),
-                FilledButton.icon(
-                  onPressed: _openAddPatientDialog,
-                  icon: const Icon(Icons.person_add),
-                  label: const Text('Add Patient'),
-                ),
-              ],
+            PageHeader(
+              title: 'Patients',
+              subtitle: 'Manage patient information and records',
+              action: FilledButton.icon(
+                onPressed: _openAddPatientDialog,
+                icon: const Icon(Icons.person_add_alt_1_rounded, size: 18),
+                label: const Text('Add Patient'),
+              ),
             ),
-            const SizedBox(height: 20),
-            Wrap(
-              spacing: 12,
-              runSpacing: 12,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                DropdownButton<String>(
-                  value: _searchBy,
-                  items: const [
-                    DropdownMenuItem(value: 'name', child: Text('Name')),
-                    DropdownMenuItem(value: 'phone', child: Text('Mobile')),
-                    DropdownMenuItem(
-                      value: 'patient_number',
-                      child: Text('Patient Number'),
-                    ),
-                  ],
-                  onChanged: (value) => setState(() => _searchBy = value ?? 'name'),
-                ),
-                SizedBox(
-                  width: 280,
-                  child: TextField(
-                    controller: _searchController,
-                    decoration: const InputDecoration(
-                      prefixIcon: Icon(Icons.search),
-                      hintText: 'Search patients...',
-                      border: OutlineInputBorder(),
-                    ),
-                    onSubmitted: (_) => _refresh(),
-                  ),
-                ),
-                FilledButton(onPressed: _refresh, child: const Text('Search')),
-                OutlinedButton(onPressed: _clearSearch, child: const Text('Clear')),
-              ],
+            const SizedBox(height: AppSpacing.lg),
+            _SearchBar(
+              searchBy: _searchBy,
+              controller: _searchController,
+              onSearchByChanged: (value) =>
+                  setState(() => _searchBy = value ?? 'name'),
+              onSearch: _refresh,
+              onClear: _clearSearch,
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: AppSpacing.lg),
             Expanded(
               child: FutureBuilder<List<Patient>>(
                 future: _patientsFuture,
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
+                    return const AppLoader();
                   }
                   if (snapshot.hasError) {
-                    return Center(child: Text('Failed to load patients: ${snapshot.error}'));
+                    return EmptyState(
+                      icon: Icons.error_outline,
+                      title: 'Failed to load patients',
+                      message: '${snapshot.error}',
+                    );
                   }
                   final patients = snapshot.data ?? [];
                   if (patients.isEmpty) {
-                    return const Center(child: Text('No patients found.'));
+                    return const EmptyState(
+                      icon: Icons.people_outline,
+                      title: 'No patients found',
+                      message: 'Try a different search or add a new patient.',
+                    );
                   }
                   return Card(
                     child: ListView.separated(
+                      padding: const EdgeInsets.symmetric(vertical: 4),
                       itemCount: patients.length,
                       separatorBuilder: (_, _) => const Divider(height: 1),
                       itemBuilder: (context, index) {
                         final patient = patients[index];
                         return ListTile(
-                          leading: CircleAvatar(child: Text(patient.fullName[0])),
-                          title: Text(patient.fullName),
-                          subtitle: Text(
-                            '${patient.ageYears ?? '-'} yrs • ${patient.gender} • ${patient.phone}',
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 6,
                           ),
-                          trailing: Text(patient.patientNumber),
+                          leading: InitialsAvatar(text: patient.fullName),
+                          title: Text(
+                            patient.fullName.toTitleCase,
+                            style: const TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                          subtitle: Text(
+                            '${patient.ageYears ?? '-'} yrs • '
+                            '${patient.gender.toTitleCase} • ${patient.phone}',
+                          ),
+                          trailing: StatusPill(
+                            label: patient.patientNumber,
+                            color: AppTheme.primary,
+                          ),
                         );
                       },
                     ),
@@ -143,6 +129,71 @@ class _PatientsPageState extends State<PatientsPage> {
                 },
               ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SearchBar extends StatelessWidget {
+  const _SearchBar({
+    required this.searchBy,
+    required this.controller,
+    required this.onSearchByChanged,
+    required this.onSearch,
+    required this.onClear,
+  });
+
+  final String searchBy;
+  final TextEditingController controller;
+  final ValueChanged<String?> onSearchByChanged;
+  final VoidCallback onSearch;
+  final VoidCallback onClear;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Wrap(
+          spacing: AppSpacing.sm,
+          runSpacing: AppSpacing.sm,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            SizedBox(
+              width: 170,
+              child: DropdownButtonFormField<String>(
+                initialValue: searchBy,
+                decoration: const InputDecoration(
+                  isDense: true,
+                  labelText: 'Search by',
+                ),
+                items: const [
+                  DropdownMenuItem(value: 'name', child: Text('Name')),
+                  DropdownMenuItem(value: 'phone', child: Text('Mobile')),
+                  DropdownMenuItem(
+                    value: 'patient_number',
+                    child: Text('Patient Number'),
+                  ),
+                ],
+                onChanged: onSearchByChanged,
+              ),
+            ),
+            SizedBox(
+              width: 280,
+              child: TextField(
+                controller: controller,
+                decoration: const InputDecoration(
+                  isDense: true,
+                  prefixIcon: Icon(Icons.search),
+                  hintText: 'Search patients...',
+                ),
+                onSubmitted: (_) => onSearch(),
+              ),
+            ),
+            FilledButton(onPressed: onSearch, child: const Text('Search')),
+            OutlinedButton(onPressed: onClear, child: const Text('Clear')),
           ],
         ),
       ),
@@ -175,13 +226,13 @@ class _AddPatientDialogState extends State<_AddPatientDialog> {
     });
     try {
       await PatientsApi().create(
-        fullName: _nameController.text.trim(),
+        fullName: _nameController.text.trim().toTitleCase,
         phone: _phoneController.text.trim(),
         ageYears: int.tryParse(_ageController.text.trim()),
         gender: _gender,
         address: _addressController.text.trim().isEmpty
             ? null
-            : _addressController.text.trim(),
+            : _addressController.text.trim().toSentenceCase,
       );
       if (mounted) Navigator.of(context).pop(true);
     } catch (e) {
@@ -205,13 +256,17 @@ class _AddPatientDialogState extends State<_AddPatientDialog> {
               TextFormField(
                 controller: _nameController,
                 decoration: const InputDecoration(labelText: 'Full Name'),
-                validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
+                textCapitalization: TextCapitalization.words,
+                validator: (v) =>
+                    (v == null || v.trim().isEmpty) ? 'Required' : null,
               ),
+              const SizedBox(height: AppSpacing.md),
               TextFormField(
                 controller: _ageController,
                 decoration: const InputDecoration(labelText: 'Age'),
                 keyboardType: TextInputType.number,
               ),
+              const SizedBox(height: AppSpacing.md),
               DropdownButtonFormField<String>(
                 initialValue: _gender,
                 decoration: const InputDecoration(labelText: 'Gender'),
@@ -221,18 +276,23 @@ class _AddPatientDialogState extends State<_AddPatientDialog> {
                 ],
                 onChanged: (value) => setState(() => _gender = value ?? 'male'),
               ),
+              const SizedBox(height: AppSpacing.md),
               TextFormField(
                 controller: _phoneController,
                 decoration: const InputDecoration(labelText: 'Contact Number'),
-                validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
+                keyboardType: TextInputType.phone,
+                validator: (v) =>
+                    (v == null || v.trim().isEmpty) ? 'Required' : null,
               ),
+              const SizedBox(height: AppSpacing.md),
               TextFormField(
                 controller: _addressController,
                 decoration: const InputDecoration(labelText: 'Address'),
+                textCapitalization: TextCapitalization.sentences,
               ),
               if (_error != null) ...[
-                const SizedBox(height: 8),
-                Text(_error!, style: const TextStyle(color: Colors.red)),
+                const SizedBox(height: AppSpacing.sm),
+                ErrorBanner(message: _error!),
               ],
             ],
           ),
@@ -240,7 +300,9 @@ class _AddPatientDialogState extends State<_AddPatientDialog> {
       ),
       actions: [
         TextButton(
-          onPressed: _submitting ? null : () => Navigator.of(context).pop(false),
+          onPressed: _submitting
+              ? null
+              : () => Navigator.of(context).pop(false),
           child: const Text('Cancel'),
         ),
         FilledButton(
@@ -249,7 +311,10 @@ class _AddPatientDialogState extends State<_AddPatientDialog> {
               ? const SizedBox(
                   width: 16,
                   height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2),
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
                 )
               : const Text('Add Patient'),
         ),
