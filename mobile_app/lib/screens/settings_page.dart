@@ -20,7 +20,9 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   void _refreshFooterNotes() {
-    setState(() => _footerNotesFuture = _api.listFooterNotes());
+    setState(() {
+      _footerNotesFuture = _api.listFooterNotes();
+    });
   }
 
   Future<void> _openAddFooterNoteDialog() async {
@@ -73,13 +75,21 @@ class _SettingsPageState extends State<SettingsPage> {
                       children: const [
                         Icon(Icons.security),
                         SizedBox(width: 8),
-                        Text('Account Security', style: TextStyle(fontWeight: FontWeight.bold)),
+                        Text(
+                          'Account Security',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
                       ],
                     ),
                     const SizedBox(height: 8),
-                    const Text('Change your account password for better security.'),
+                    const Text(
+                      'Change your account password for better security.',
+                    ),
                     const SizedBox(height: 12),
-                    OutlinedButton(onPressed: () {}, child: const Text('Change Password')),
+                    OutlinedButton(
+                      onPressed: () {},
+                      child: const Text('Change Password'),
+                    ),
                   ],
                 ),
               ),
@@ -95,7 +105,10 @@ class _SettingsPageState extends State<SettingsPage> {
                       children: const [
                         Icon(Icons.local_hospital),
                         SizedBox(width: 8),
-                        Text('Clinic Management', style: TextStyle(fontWeight: FontWeight.bold)),
+                        Text(
+                          'Clinic Management',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
                       ],
                     ),
                     const SizedBox(height: 8),
@@ -111,7 +124,10 @@ class _SettingsPageState extends State<SettingsPage> {
                           onPressed: () {},
                           child: const Text('Create New Clinic'),
                         ),
-                        OutlinedButton(onPressed: () {}, child: const Text('Clinic List')),
+                        OutlinedButton(
+                          onPressed: () {},
+                          child: const Text('Clinic List'),
+                        ),
                       ],
                     ),
                   ],
@@ -136,7 +152,9 @@ class _SettingsPageState extends State<SettingsPage> {
                       ],
                     ),
                     const SizedBox(height: 8),
-                    const Text('Add, update, or view your prescription footer notes.'),
+                    const Text(
+                      'Add, update, or view your prescription footer notes.',
+                    ),
                     const SizedBox(height: 12),
                     FilledButton(
                       onPressed: _openAddFooterNoteDialog,
@@ -150,7 +168,9 @@ class _SettingsPageState extends State<SettingsPage> {
                         if (notes.isEmpty) return const SizedBox.shrink();
                         return Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
-                          children: notes.map((note) => ListTile(title: Text(note))).toList(),
+                          children: notes
+                              .map((note) => ListTile(title: Text(note)))
+                              .toList(),
                         );
                       },
                     ),

@@ -20,7 +20,11 @@ class _DiseasesPageState extends State<DiseasesPage> {
     _future = _api.list();
   }
 
-  void _refresh() => setState(() => _future = _api.list());
+  void _refresh() {
+    setState(() {
+      _future = _api.list();
+    });
+  }
 
   Future<void> _openAddDialog() async {
     final created = await showDialog<bool>(

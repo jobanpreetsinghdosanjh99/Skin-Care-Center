@@ -36,7 +36,9 @@ class _MedicinesPageState extends State<MedicinesPage> {
   }
 
   void _refresh() {
-    setState(() => _future = _api.list(search: _searchController.text.trim()));
+    setState(() {
+      _future = _api.list(search: _searchController.text.trim());
+    });
   }
 
   Future<void> _openAddMedicineDialog() async {
@@ -73,7 +75,10 @@ class _MedicinesPageState extends State<MedicinesPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text('Medicines', style: Theme.of(context).textTheme.headlineMedium),
+                    Text(
+                      'Medicines',
+                      style: Theme.of(context).textTheme.headlineMedium,
+                    ),
                     const Text('Manage medicine inventory'),
                   ],
                 ),
@@ -121,19 +126,24 @@ class _MedicinesPageState extends State<MedicinesPage> {
                     return const Center(child: CircularProgressIndicator());
                   }
                   if (snapshot.hasError) {
-                    return Center(child: Text('Failed to load medicines: ${snapshot.error}'));
+                    return Center(
+                      child: Text(
+                        'Failed to load medicines: ${snapshot.error}',
+                      ),
+                    );
                   }
                   final medicines = snapshot.data ?? [];
                   if (medicines.isEmpty) {
                     return const Center(child: Text('No medicines found.'));
                   }
                   return GridView.builder(
-                    gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                      maxCrossAxisExtent: 280,
-                      mainAxisSpacing: 16,
-                      crossAxisSpacing: 16,
-                      childAspectRatio: 1.3,
-                    ),
+                    gridDelegate:
+                        const SliverGridDelegateWithMaxCrossAxisExtent(
+                          maxCrossAxisExtent: 280,
+                          mainAxisSpacing: 16,
+                          crossAxisSpacing: 16,
+                          childAspectRatio: 1.3,
+                        ),
                     itemCount: medicines.length,
                     itemBuilder: (context, index) {
                       final medicine = medicines[index];
@@ -150,7 +160,9 @@ class _MedicinesPageState extends State<MedicinesPage> {
                                   Expanded(
                                     child: Text(
                                       medicine.name,
-                                      style: Theme.of(context).textTheme.titleMedium,
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.titleMedium,
                                       overflow: TextOverflow.ellipsis,
                                     ),
                                   ),
@@ -163,7 +175,8 @@ class _MedicinesPageState extends State<MedicinesPage> {
                               Align(
                                 alignment: Alignment.centerRight,
                                 child: TextButton(
-                                  onPressed: () => _openAdjustStockDialog(medicine),
+                                  onPressed: () =>
+                                      _openAdjustStockDialog(medicine),
                                   child: const Text('Adjust Stock'),
                                 ),
                               ),
@@ -234,7 +247,8 @@ class _AddMedicineDialogState extends State<_AddMedicineDialog> {
               TextFormField(
                 controller: _nameController,
                 decoration: const InputDecoration(labelText: 'Medicine Name'),
-                validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
+                validator: (v) =>
+                    (v == null || v.trim().isEmpty) ? 'Required' : null,
               ),
               DropdownButtonFormField<String>(
                 initialValue: _form,
@@ -260,7 +274,9 @@ class _AddMedicineDialogState extends State<_AddMedicineDialog> {
       ),
       actions: [
         TextButton(
-          onPressed: _submitting ? null : () => Navigator.of(context).pop(false),
+          onPressed: _submitting
+              ? null
+              : () => Navigator.of(context).pop(false),
           child: const Text('Cancel'),
         ),
         FilledButton(
@@ -307,7 +323,9 @@ class _AdjustStockDialogState extends State<_AdjustStockDialog> {
       await MedicinesApi().adjustStock(
         widget.medicine.id,
         delta,
-        note: _noteController.text.trim().isEmpty ? null : _noteController.text.trim(),
+        note: _noteController.text.trim().isEmpty
+            ? null
+            : _noteController.text.trim(),
       );
       if (mounted) Navigator.of(context).pop(true);
     } catch (e) {
@@ -345,7 +363,9 @@ class _AdjustStockDialogState extends State<_AdjustStockDialog> {
       ),
       actions: [
         TextButton(
-          onPressed: _submitting ? null : () => Navigator.of(context).pop(false),
+          onPressed: _submitting
+              ? null
+              : () => Navigator.of(context).pop(false),
           child: const Text('Cancel'),
         ),
         FilledButton(
