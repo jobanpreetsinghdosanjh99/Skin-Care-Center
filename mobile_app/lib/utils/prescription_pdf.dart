@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
@@ -13,12 +14,27 @@ import '../models/prescription.dart';
 /// third-party app, which always rendered prescriptions on a fixed A5
 /// letterhead layout with the clinic name/address/phone at the top.
 class PrescriptionPdf {
+  static pw.Font? _gurmukhiFont;
+
+  /// Loads (and caches) the Noto Sans Gurmukhi font so Punjabi text in
+  /// footer notes / instructions renders correctly instead of showing
+  /// as empty boxes — the default PDF fonts only cover Latin glyphs.
+  static Future<pw.Font> _loadGurmukhiFont() async {
+    final cached = _gurmukhiFont;
+    if (cached != null) return cached;
+    final data = await rootBundle.load('assets/fonts/NotoSansGurmukhi.ttf');
+    final font = pw.Font.ttf(data);
+    _gurmukhiFont = font;
+    return font;
+  }
+
   static Future<pw.Document> build({
     required Clinic clinic,
     required Patient patient,
     required Prescription prescription,
   }) async {
     final doc = pw.Document();
+    final gurmukhiFont = await _loadGurmukhiFont();
 
     final dateStr =
         '${prescription.createdAt.day.toString().padLeft(2, '0')}/'
@@ -29,6 +45,7 @@ class PrescriptionPdf {
       pw.Page(
         pageFormat: PdfPageFormat.a5,
         margin: const pw.EdgeInsets.all(24),
+        theme: pw.ThemeData.withFont(fontFallback: [gurmukhiFont]),
         build: (context) {
           return pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,

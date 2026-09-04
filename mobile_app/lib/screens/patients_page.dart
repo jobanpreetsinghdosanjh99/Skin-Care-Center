@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/patient.dart';
+import '../services/clinic_scope.dart';
 import '../services/patients_api.dart';
 import '../theme/app_theme.dart';
 import '../utils/text_format.dart';
@@ -26,6 +27,13 @@ class _PatientsPageState extends State<PatientsPage> {
   void initState() {
     super.initState();
     _patientsFuture = _api.list();
+    ClinicScope.epoch.addListener(_refresh);
+  }
+
+  @override
+  void dispose() {
+    ClinicScope.epoch.removeListener(_refresh);
+    super.dispose();
   }
 
   void _refresh() {

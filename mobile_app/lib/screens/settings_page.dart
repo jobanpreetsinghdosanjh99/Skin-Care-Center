@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/footer_note.dart';
+import '../services/clinic_scope.dart';
 import '../services/clinics_api.dart';
 import '../services/settings_api.dart';
 import '../theme/app_theme.dart';
@@ -25,6 +26,18 @@ class _SettingsPageState extends State<SettingsPage> {
     super.initState();
     _footerNotesFuture = _api.listFooterNotes();
     _clinicsFuture = _clinicsApi.list();
+    ClinicScope.epoch.addListener(_onClinicChanged);
+  }
+
+  @override
+  void dispose() {
+    ClinicScope.epoch.removeListener(_onClinicChanged);
+    super.dispose();
+  }
+
+  void _onClinicChanged() {
+    _refreshFooterNotes();
+    _refreshClinics();
   }
 
   void _refreshFooterNotes() {
@@ -302,6 +315,16 @@ class _SettingsPageState extends State<SettingsPage> {
                               );
                               if (context.mounted) Navigator.of(context).pop();
                               _refreshClinics();
+                              ClinicScope.notifyClinicChanged();
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      'Clinic switched. Refreshing data…',
+                                    ),
+                                  ),
+                                );
+                              }
                             },
                             child: const Text('Switch'),
                           ),

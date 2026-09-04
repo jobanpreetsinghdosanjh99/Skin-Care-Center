@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/medicine.dart';
+import '../services/clinic_scope.dart';
 import '../services/medicines_api.dart';
 import '../theme/app_theme.dart';
 import '../utils/text_format.dart';
@@ -36,6 +37,13 @@ class _MedicinesPageState extends State<MedicinesPage> {
   void initState() {
     super.initState();
     _future = _api.list();
+    ClinicScope.epoch.addListener(_refresh);
+  }
+
+  @override
+  void dispose() {
+    ClinicScope.epoch.removeListener(_refresh);
+    super.dispose();
   }
 
   void _refresh() {
