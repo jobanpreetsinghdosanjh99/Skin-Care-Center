@@ -35,4 +35,22 @@ class ClinicsApi {
     final data = await _client.post('/clinics/$clinicId/activate', {});
     return data as Map<String, dynamic>;
   }
+
+  Future<Map<String, dynamic>> update(
+    String clinicId, {
+    required String name,
+    String? phone,
+    String? email,
+    String? address,
+  }) async {
+    final data = await _client.put('/clinics/$clinicId', {
+      'name': name,
+      'phone': phone,
+      'email': email,
+      'address': address,
+    });
+    return data as Map<String, dynamic>;
+  }
+
+  Future<void> delete(String clinicId) => _client.delete('/clinics/$clinicId');
 }

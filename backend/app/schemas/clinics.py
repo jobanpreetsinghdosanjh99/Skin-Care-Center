@@ -11,6 +11,13 @@ class ClinicCreate(BaseModel):
     address: str | None = None
 
 
+class ClinicUpdate(BaseModel):
+    name: str = Field(min_length=1, max_length=200)
+    phone: str | None = None
+    email: str | None = None
+    address: str | None = None
+
+
 class Clinic(BaseModel):
     id: uuid.UUID
     name: str

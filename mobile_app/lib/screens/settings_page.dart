@@ -153,16 +153,25 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  Future<void> _openCreateClinicDialog() async {
-    final nameController = TextEditingController();
-    final phoneController = TextEditingController();
-    final emailController = TextEditingController();
-    final addressController = TextEditingController();
+  Future<void> _openClinicDialog({Map<String, dynamic>? existing}) async {
+    final isEditing = existing != null;
+    final nameController = TextEditingController(
+      text: existing != null ? existing['name'] as String : '',
+    );
+    final phoneController = TextEditingController(
+      text: existing != null ? (existing['phone'] as String? ?? '') : '',
+    );
+    final emailController = TextEditingController(
+      text: existing != null ? (existing['email'] as String? ?? '') : '',
+    );
+    final addressController = TextEditingController(
+      text: existing != null ? (existing['address'] as String? ?? '') : '',
+    );
     final formKey = GlobalKey<FormState>();
     String? error;
     bool submitting = false;
 
-    final created = await showDialog<bool>(
+    final saved = await showDialog<bool>(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) {
@@ -173,18 +182,34 @@ class _SettingsPageState extends State<SettingsPage> {
               error = null;
             });
             try {
-              await _clinicsApi.create(
-                name: nameController.text.trim().toTitleCase,
-                phone: phoneController.text.trim().isEmpty
-                    ? null
-                    : phoneController.text.trim(),
-                email: emailController.text.trim().isEmpty
-                    ? null
-                    : emailController.text.trim(),
-                address: addressController.text.trim().isEmpty
-                    ? null
-                    : addressController.text.trim().toSentenceCase,
-              );
+              if (isEditing) {
+                await _clinicsApi.update(
+                  existing['id'] as String,
+                  name: nameController.text.trim().toTitleCase,
+                  phone: phoneController.text.trim().isEmpty
+                      ? null
+                      : phoneController.text.trim(),
+                  email: emailController.text.trim().isEmpty
+                      ? null
+                      : emailController.text.trim(),
+                  address: addressController.text.trim().isEmpty
+                      ? null
+                      : addressController.text.trim().toSentenceCase,
+                );
+              } else {
+                await _clinicsApi.create(
+                  name: nameController.text.trim().toTitleCase,
+                  phone: phoneController.text.trim().isEmpty
+                      ? null
+                      : phoneController.text.trim(),
+                  email: emailController.text.trim().isEmpty
+                      ? null
+                      : emailController.text.trim(),
+                  address: addressController.text.trim().isEmpty
+                      ? null
+                      : addressController.text.trim().toSentenceCase,
+                );
+              }
               if (context.mounted) Navigator.of(context).pop(true);
             } catch (e) {
               setDialogState(() => error = e.toString());
@@ -194,7 +219,7 @@ class _SettingsPageState extends State<SettingsPage> {
           }
 
           return AlertDialog(
-            title: const Text('Create New Clinic'),
+            title: Text(isEditing ? 'Edit Clinic' : 'Create New Clinic'),
             content: SizedBox(
               width: 400,
               child: Form(
@@ -255,91 +280,170 @@ class _SettingsPageState extends State<SettingsPage> {
                           color: Colors.white,
                         ),
                       )
-                    : const Text('Create Clinic'),
+                    : Text(isEditing ? 'Save Changes' : 'Create Clinic'),
               ),
             ],
           );
         },
       ),
     );
-    if (created == true) _refreshClinics();
+    if (saved == true) {
+      _refreshClinics();
+      if (isEditing) ClinicScope.notifyClinicChanged();
+    }
+  }
+
+  Future<void> _confirmDeleteClinic(Map<String, dynamic> clinic) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Clinic'),
+        content: Text(
+          'Are you sure you want to delete '
+          '"${(clinic['name'] as String).toTitleCase}"? '
+          'This is only possible if it has no patients, prescriptions, '
+          'or other records.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: AppTheme.danger),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    try {
+      await _clinicsApi.delete(clinic['id'] as String);
+      _refreshClinics();
+      ClinicScope.notifyClinicChanged();
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Clinic deleted.')));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to delete: $e')));
+      }
+    }
   }
 
   Future<void> _openClinicListDialog() async {
     await showDialog<void>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Clinic List'),
-        content: SizedBox(
-          width: 420,
-          height: 320,
-          child: FutureBuilder<List<Map<String, dynamic>>>(
-            future: _clinicsFuture,
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const AppLoader();
-              }
-              final clinics = snapshot.data ?? [];
-              if (clinics.isEmpty) {
-                return const EmptyState(
-                  icon: Icons.local_hospital_outlined,
-                  title: 'No clinics found',
-                );
-              }
-              return ListView.separated(
-                itemCount: clinics.length,
-                separatorBuilder: (_, _) => const Divider(height: 1),
-                itemBuilder: (context, index) {
-                  final clinic = clinics[index];
-                  final isActive = clinic['is_active'] == true;
-                  return ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: Icon(
-                      Icons.local_hospital_rounded,
-                      color: isActive ? AppTheme.primary : Colors.grey,
-                    ),
-                    title: Text(
-                      (clinic['name'] as String).toTitleCase,
-                      style: const TextStyle(fontWeight: FontWeight.w600),
-                    ),
-                    subtitle: Text((clinic['phone'] as String?) ?? ''),
-                    trailing: isActive
-                        ? const StatusPill(
-                            label: 'Active',
-                            color: AppTheme.success,
-                          )
-                        : TextButton(
-                            onPressed: () async {
-                              await _clinicsApi.activate(
-                                clinic['id'] as String,
-                              );
-                              if (context.mounted) Navigator.of(context).pop();
-                              _refreshClinics();
-                              ClinicScope.notifyClinicChanged();
-                              if (context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text(
-                                      'Clinic switched. Refreshing data…',
-                                    ),
-                                  ),
-                                );
-                              }
-                            },
-                            child: const Text('Switch'),
-                          ),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Clinic List'),
+          content: SizedBox(
+            width: 460,
+            height: 320,
+            child: FutureBuilder<List<Map<String, dynamic>>>(
+              future: _clinicsFuture,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const AppLoader();
+                }
+                final clinics = snapshot.data ?? [];
+                if (clinics.isEmpty) {
+                  return const EmptyState(
+                    icon: Icons.local_hospital_outlined,
+                    title: 'No clinics found',
                   );
-                },
-              );
-            },
+                }
+                return ListView.separated(
+                  itemCount: clinics.length,
+                  separatorBuilder: (_, _) => const Divider(height: 1),
+                  itemBuilder: (context, index) {
+                    final clinic = clinics[index];
+                    final isActive = clinic['is_active'] == true;
+                    return ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: Icon(
+                        Icons.local_hospital_rounded,
+                        color: isActive ? AppTheme.primary : Colors.grey,
+                      ),
+                      title: Text(
+                        (clinic['name'] as String).toTitleCase,
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                      subtitle: Text((clinic['phone'] as String?) ?? ''),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (isActive)
+                            const Padding(
+                              padding: EdgeInsets.only(right: 6),
+                              child: StatusPill(
+                                label: 'Active',
+                                color: AppTheme.success,
+                              ),
+                            )
+                          else
+                            TextButton(
+                              onPressed: () async {
+                                await _clinicsApi.activate(
+                                  clinic['id'] as String,
+                                );
+                                if (context.mounted) {
+                                  Navigator.of(context).pop();
+                                }
+                                _refreshClinics();
+                                ClinicScope.notifyClinicChanged();
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        'Clinic switched. Refreshing data…',
+                                      ),
+                                    ),
+                                  );
+                                }
+                              },
+                              child: const Text('Switch'),
+                            ),
+                          IconButton(
+                            onPressed: () =>
+                                _openClinicDialog(existing: clinic),
+                            icon: const Icon(Icons.edit_outlined, size: 18),
+                            tooltip: 'Edit',
+                            visualDensity: VisualDensity.compact,
+                          ),
+                          IconButton(
+                            onPressed: () async {
+                              await _confirmDeleteClinic(clinic);
+                              setDialogState(() {});
+                            },
+                            icon: const Icon(
+                              Icons.delete_outline,
+                              size: 18,
+                              color: AppTheme.danger,
+                            ),
+                            tooltip: 'Delete',
+                            visualDensity: VisualDensity.compact,
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
           ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Close'),
+            ),
+          ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Close'),
-          ),
-        ],
       ),
     );
   }
@@ -494,7 +598,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 runSpacing: AppSpacing.sm,
                 children: [
                   FilledButton.icon(
-                    onPressed: _openCreateClinicDialog,
+                    onPressed: () => _openClinicDialog(),
                     icon: const Icon(Icons.add_business_rounded, size: 18),
                     label: const Text('Create New Clinic'),
                   ),
