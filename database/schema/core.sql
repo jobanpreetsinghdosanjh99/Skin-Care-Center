@@ -78,7 +78,7 @@ CREATE TABLE medicines (
 
 CREATE TABLE stock_movements (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  medicine_id UUID NOT NULL REFERENCES medicines(id),
+  medicine_id UUID NOT NULL REFERENCES medicines(id) ON DELETE CASCADE,
   created_by UUID REFERENCES users(id),
   movement_type stock_movement_type NOT NULL,
   quantity_delta INTEGER NOT NULL CHECK (quantity_delta <> 0),
@@ -111,7 +111,7 @@ CREATE TABLE prescription_diseases (
 CREATE TABLE prescription_items (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   prescription_id UUID NOT NULL REFERENCES prescriptions(id) ON DELETE CASCADE,
-  medicine_id UUID REFERENCES medicines(id),
+  medicine_id UUID REFERENCES medicines(id) ON DELETE SET NULL,
   medicine_name TEXT NOT NULL,
   dosage TEXT NOT NULL,
   quantity INTEGER NOT NULL CHECK (quantity > 0),
