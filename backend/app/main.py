@@ -4,6 +4,7 @@ from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.auth import get_current_user_id, require_roles
+from app.config import settings as app_settings
 from app.routers import (
     auth,
     clinics,
@@ -31,7 +32,7 @@ app.add_middleware(
     CORSMiddleware,
     # Flutter uses a random localhost port during development; in production,
     # the frontend origin is controlled through an environment variable.
-    allow_origin_regex=settings.frontend_origin_regex,
+    allow_origin_regex=app_settings.frontend_origin_regex,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
