@@ -10,6 +10,9 @@ import 'screens/settings_page.dart';
 import 'screens/view_prescriptions_page.dart';
 import 'services/api_client.dart';
 import 'services/auth_api.dart';
+import 'services/medicines_api.dart';
+import 'services/patients_api.dart';
+import 'services/prescriptions_api.dart';
 import 'services/quick_actions.dart';
 import 'theme/app_theme.dart';
 import 'widgets/common.dart';
@@ -363,133 +366,212 @@ class _PageFrame extends StatelessWidget {
   }
 }
 
-class _DashboardPage extends StatelessWidget {
+class _DashboardPage extends StatefulWidget {
   const _DashboardPage({required this.onQuickAction});
 
   final void Function(String action) onQuickAction;
+
+  @override
+  State<_DashboardPage> createState() => _DashboardPageState();
+}
+
+class _DashboardPageState extends State<_DashboardPage> {
+  final _patientsApi = PatientsApi();
+  final _medicinesApi = MedicinesApi();
+  final _prescriptionsApi = PrescriptionsApi();
+  late Future<_DashboardStats> _stats;
+
+  @override
+  void initState() {
+    super.initState();
+    _stats = _loadStats();
+  }
+
+  Future<_DashboardStats> _loadStats() async {
+    final results = await Future.wait<dynamic>([
+      _patientsApi.list(),
+      _medicinesApi.list(),
+      _prescriptionsApi.list(),
+    ]);
+    final prescriptions = results[2] as List;
+    final today = DateTime.now();
+    final todayCount = prescriptions.where((prescription) {
+      final created = prescription.createdAt.toLocal();
+      return created.year == today.year &&
+          created.month == today.month &&
+          created.day == today.day;
+    }).length;
+    return _DashboardStats(
+      patients: (results[0] as List).length,
+      medicines: (results[1] as List).length,
+      prescriptions: prescriptions.length,
+      todayPrescriptions: todayCount,
+    );
+  }
+
+  void _refresh() {
+    setState(() => _stats = _loadStats());
+  }
 
   @override
   Widget build(BuildContext context) {
     return _PageFrame(
       title: 'Welcome Back, Doctor',
       subtitle: 'Here is what is happening at your clinic today.',
-      child: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            GridView.extent(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              maxCrossAxisExtent: 280,
-              crossAxisSpacing: AppSpacing.md,
-              mainAxisSpacing: AppSpacing.md,
-              childAspectRatio: 2.4,
-              children: const [
-                _MetricCard(
-                  label: 'Total Patients',
-                  value: '1,809',
-                  icon: Icons.people_alt_rounded,
-                  color: AppTheme.primary,
-                ),
-                _MetricCard(
-                  label: 'Total Medicines',
-                  value: '112',
-                  icon: Icons.medication_rounded,
-                  color: AppTheme.secondary,
-                ),
-                _MetricCard(
-                  label: 'Total Prescriptions',
-                  value: '2,351',
-                  icon: Icons.description_rounded,
-                  color: Color(0xFF6D5DD3),
-                ),
-                _MetricCard(
-                  label: "Today's Prescriptions",
-                  value: '0',
-                  icon: Icons.today_rounded,
-                  color: Color(0xFFDA6C2E),
-                ),
-              ],
-            ),
-            const SizedBox(height: AppSpacing.lg),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(AppSpacing.lg),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Quick Actions',
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: AppSpacing.md),
-                    Wrap(
-                      spacing: AppSpacing.md,
-                      runSpacing: AppSpacing.md,
-                      children: [
-                        _QuickAction(
-                          icon: Icons.person_add_alt_1_rounded,
-                          label: 'Add Patient',
-                          onTap: () => onQuickAction('add_patient'),
-                        ),
-                        _QuickAction(
-                          icon: Icons.medication_rounded,
-                          label: 'Add Medicine',
-                          onTap: () => onQuickAction('add_medicine'),
-                        ),
-                        if (!AuthSession.isManager)
-                          _QuickAction(
-                            icon: Icons.description_rounded,
-                            label: 'New Prescription',
-                            onTap: () => onQuickAction('new_prescription'),
+      child: FutureBuilder<_DashboardStats>(
+        future: _stats,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const AppLoader();
+          }
+          if (snapshot.hasError) {
+            return EmptyState(
+              icon: Icons.error_outline,
+              title: 'Unable to load dashboard',
+              message: '${snapshot.error}',
+            );
+          }
+          final stats = snapshot.data!;
+          return RefreshIndicator(
+            onRefresh: () async => _refresh(),
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  GridView.extent(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    maxCrossAxisExtent: 280,
+                    crossAxisSpacing: AppSpacing.md,
+                    mainAxisSpacing: AppSpacing.md,
+                    childAspectRatio: 2.4,
+                    children: [
+                      _MetricCard(
+                        label: 'Total Patients',
+                        value: '${stats.patients}',
+                        icon: Icons.people_alt_rounded,
+                        color: AppTheme.primary,
+                      ),
+                      _MetricCard(
+                        label: 'Total Medicines',
+                        value: '${stats.medicines}',
+                        icon: Icons.medication_rounded,
+                        color: AppTheme.secondary,
+                      ),
+                      _MetricCard(
+                        label: 'Total Prescriptions',
+                        value: '${stats.prescriptions}',
+                        icon: Icons.description_rounded,
+                        color: Color(0xFF6D5DD3),
+                      ),
+                      _MetricCard(
+                        label: "Today's Prescriptions",
+                        value: '${stats.todayPrescriptions}',
+                        icon: Icons.today_rounded,
+                        color: Color(0xFFDA6C2E),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppSpacing.lg),
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(AppSpacing.lg),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Quick Actions',
+                            style: Theme.of(context).textTheme.titleMedium,
                           ),
-                      ],
+                          const SizedBox(height: AppSpacing.md),
+                          Wrap(
+                            spacing: AppSpacing.md,
+                            runSpacing: AppSpacing.md,
+                            children: [
+                              _QuickAction(
+                                icon: Icons.person_add_alt_1_rounded,
+                                label: 'Add Patient',
+                                onTap: () =>
+                                    widget.onQuickAction('add_patient'),
+                              ),
+                              _QuickAction(
+                                icon: Icons.medication_rounded,
+                                label: 'Add Medicine',
+                                onTap: () =>
+                                    widget.onQuickAction('add_medicine'),
+                              ),
+                              if (!AuthSession.isManager)
+                                _QuickAction(
+                                  icon: Icons.description_rounded,
+                                  label: 'New Prescription',
+                                  onTap: () =>
+                                      widget.onQuickAction('new_prescription'),
+                                ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: AppSpacing.lg),
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(AppSpacing.lg),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'System Overview',
+                            style: Theme.of(context).textTheme.titleMedium,
+                          ),
+                          const SizedBox(height: AppSpacing.md),
+                          Wrap(
+                            spacing: AppSpacing.md,
+                            runSpacing: AppSpacing.md,
+                            children: const [
+                              _SystemStatusCard(
+                                icon: Icons.description_rounded,
+                                title: 'Prescription System',
+                                subtitle: 'Active and operational',
+                                statusLabel: 'Online',
+                                color: AppTheme.success,
+                              ),
+                              _SystemStatusCard(
+                                icon: Icons.storage_rounded,
+                                title: 'Patient Database',
+                                subtitle: 'All records secured',
+                                statusLabel: 'Secure',
+                                color: AppTheme.primary,
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: AppSpacing.lg),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(AppSpacing.lg),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'System Overview',
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: AppSpacing.md),
-                    Wrap(
-                      spacing: AppSpacing.md,
-                      runSpacing: AppSpacing.md,
-                      children: const [
-                        _SystemStatusCard(
-                          icon: Icons.description_rounded,
-                          title: 'Prescription System',
-                          subtitle: 'Active and operational',
-                          statusLabel: 'Online',
-                          color: AppTheme.success,
-                        ),
-                        _SystemStatusCard(
-                          icon: Icons.storage_rounded,
-                          title: 'Patient Database',
-                          subtitle: 'All records secured',
-                          statusLabel: 'Secure',
-                          color: AppTheme.primary,
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
+}
+
+class _DashboardStats {
+  const _DashboardStats({
+    required this.patients,
+    required this.medicines,
+    required this.prescriptions,
+    required this.todayPrescriptions,
+  });
+
+  final int patients;
+  final int medicines;
+  final int prescriptions;
+  final int todayPrescriptions;
 }
 
 class _SystemStatusCard extends StatelessWidget {
