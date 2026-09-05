@@ -19,11 +19,13 @@ class MedicinesApi {
     required String name,
     required String form,
     int currentStock = 0,
+    double pricePerUnit = 0,
   }) async {
     final data = await _client.post('/medicines', {
       'name': name,
       'form': form,
       'current_stock': currentStock,
+      'price_per_unit': pricePerUnit,
     }, expected: 201);
     return Medicine.fromJson(data as Map<String, dynamic>);
   }
@@ -32,10 +34,12 @@ class MedicinesApi {
     String medicineId, {
     required String name,
     required String form,
+    double pricePerUnit = 0,
   }) async {
     final data = await _client.put('/medicines/$medicineId', {
       'name': name,
       'form': form,
+      'price_per_unit': pricePerUnit,
     });
     return Medicine.fromJson(data as Map<String, dynamic>);
   }

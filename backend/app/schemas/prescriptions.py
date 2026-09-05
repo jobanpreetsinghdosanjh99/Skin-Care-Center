@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime
+from decimal import Decimal
 from enum import Enum
 
 from pydantic import BaseModel, Field
@@ -17,6 +18,7 @@ class PrescriptionItemCreate(BaseModel):
     dosage: str
     quantity: int = Field(gt=0)
     instructions: str | None = None
+    unit_price: Decimal = Field(default=Decimal("0"), ge=0)
 
 
 class PrescriptionItem(PrescriptionItemCreate):
@@ -55,3 +57,4 @@ class Prescription(BaseModel):
     finalized_at: datetime | None
     items: list[PrescriptionItem] = Field(default_factory=list)
     diseases: list[PrescriptionDiseaseInfo] = Field(default_factory=list)
+    total_amount: Decimal = Decimal("0")

@@ -70,6 +70,7 @@ CREATE TABLE medicines (
   form medicine_form NOT NULL DEFAULT 'other',
   current_stock INTEGER NOT NULL DEFAULT 0 CHECK (current_stock >= 0),
   low_stock_threshold INTEGER NOT NULL DEFAULT 5 CHECK (low_stock_threshold >= 0),
+  price_per_unit NUMERIC(10, 2) NOT NULL DEFAULT 0 CHECK (price_per_unit >= 0),
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE (clinic_id, name)
@@ -115,6 +116,7 @@ CREATE TABLE prescription_items (
   dosage TEXT NOT NULL,
   quantity INTEGER NOT NULL CHECK (quantity > 0),
   instructions TEXT,
+  unit_price NUMERIC(10, 2) NOT NULL DEFAULT 0 CHECK (unit_price >= 0),
   sort_order SMALLINT NOT NULL DEFAULT 0
 );
 

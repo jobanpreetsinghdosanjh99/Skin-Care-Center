@@ -4,12 +4,16 @@ class PrescriptionItem {
     required this.dosage,
     required this.quantity,
     this.instructions,
+    this.unitPrice = 0,
   });
 
   final String medicineName;
   final String dosage;
   final int quantity;
   final String? instructions;
+  final double unitPrice;
+
+  double get totalPrice => unitPrice * quantity;
 
   factory PrescriptionItem.fromJson(Map<String, dynamic> json) {
     return PrescriptionItem(
@@ -17,6 +21,7 @@ class PrescriptionItem {
       dosage: json['dosage'] as String,
       quantity: json['quantity'] as int,
       instructions: json['instructions'] as String?,
+      unitPrice: double.tryParse('${json['unit_price'] ?? 0}') ?? 0,
     );
   }
 }
@@ -55,6 +60,7 @@ class Prescription {
     required this.createdAt,
     required this.items,
     this.diseases = const [],
+    this.totalAmount = 0,
   });
 
   final String id;
@@ -69,6 +75,7 @@ class Prescription {
   final DateTime createdAt;
   final List<PrescriptionItem> items;
   final List<PrescriptionDisease> diseases;
+  final double totalAmount;
 
   factory Prescription.fromJson(Map<String, dynamic> json) {
     return Prescription(
@@ -90,6 +97,7 @@ class Prescription {
       diseases: (json['diseases'] as List<dynamic>? ?? [])
           .map((d) => PrescriptionDisease.fromJson(d as Map<String, dynamic>))
           .toList(),
+      totalAmount: double.tryParse('${json['total_amount'] ?? 0}') ?? 0,
     );
   }
 }

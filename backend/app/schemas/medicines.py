@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime
+from decimal import Decimal
 from enum import Enum
 
 from pydantic import BaseModel, Field
@@ -23,6 +24,7 @@ class MedicineForm(str, Enum):
 class MedicineBase(BaseModel):
     name: str = Field(min_length=1, max_length=200)
     form: MedicineForm = MedicineForm.other
+    price_per_unit: Decimal = Field(default=Decimal("0"), ge=0)
 
 
 class MedicineCreate(MedicineBase):

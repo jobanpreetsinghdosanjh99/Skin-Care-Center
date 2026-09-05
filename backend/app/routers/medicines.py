@@ -42,11 +42,11 @@ def create_medicine(payload: MedicineCreate) -> Medicine:
         clinic_id = get_or_create_default_clinic(conn)
         row = conn.execute(
             """
-            INSERT INTO medicines (clinic_id, name, form, current_stock)
-            VALUES (%s, %s, %s, %s)
+            INSERT INTO medicines (clinic_id, name, form, current_stock, price_per_unit)
+            VALUES (%s, %s, %s, %s, %s)
             RETURNING *
             """,
-            (clinic_id, payload.name, payload.form.value, payload.current_stock),
+            (clinic_id, payload.name, payload.form.value, payload.current_stock, payload.price_per_unit),
         ).fetchone()
 
         if payload.current_stock > 0:
@@ -65,11 +65,11 @@ def update_medicine(medicine_id: str, payload: MedicineUpdate) -> Medicine:
     with get_connection() as conn:
         row = conn.execute(
             """
-            UPDATE medicines SET name = %s, form = %s, updated_at = now()
+            UPDATE medicines SET name = %s, form = %s, price_per_unit = %s, updated_at = now()
             WHERE id = %s
             RETURNING *
             """,
-            (payload.name, payload.form.value, medicine_id),
+            (payload.name, payload.form.value, payload.price_per_unit, medicine_id),
         ).fetchone()
         if not row:
             raise HTTPException(status_code=404, detail="Medicine not found")

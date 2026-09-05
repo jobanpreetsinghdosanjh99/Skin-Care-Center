@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException
+from decimal import Decimal
 
 from app.clinics import get_or_create_default_clinic
 from app.db import get_connection
@@ -42,10 +43,15 @@ def _load_prescription(conn, prescription_id: str) -> dict | None:
         """,
         (prescription_id,),
     ).fetchall()
+    total_amount = sum(
+        (item["unit_price"] * item["quantity"] for item in items),
+        Decimal("0"),
+    )
     return {
         **row,
         "items": [PrescriptionItem(**item) for item in items],
         "diseases": [PrescriptionDiseaseInfo(**disease) for disease in diseases],
+        "total_amount": total_amount,
     }
 
 
@@ -119,8 +125,8 @@ def create_prescription(payload: PrescriptionCreate) -> Prescription:
                 """
                 INSERT INTO prescription_items (
                     prescription_id, medicine_id, medicine_name, dosage,
-                    quantity, instructions, sort_order
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s)
+                    quantity, instructions, unit_price, sort_order
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                 """,
                 (
                     prescription["id"],
@@ -129,6 +135,7 @@ def create_prescription(payload: PrescriptionCreate) -> Prescription:
                     item.dosage,
                     item.quantity,
                     item.instructions,
+                    item.unit_price,
                     index,
                 ),
             )

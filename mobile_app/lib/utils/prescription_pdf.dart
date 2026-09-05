@@ -94,6 +94,18 @@ class PrescriptionPdf {
                   ),
                   pw.SizedBox(height: 6),
                   _buildItemsTable(prescription),
+                  pw.SizedBox(height: 6),
+                  pw.Align(
+                    alignment: pw.Alignment.centerRight,
+                    child: pw.Text(
+                      'Total Amount: Rs. ${prescription.totalAmount.toStringAsFixed(2)}',
+                      style: pw.TextStyle(
+                        fontSize: 11,
+                        fontWeight: pw.FontWeight.bold,
+                        color: PdfColors.blueGrey900,
+                      ),
+                    ),
+                  ),
                   if ((prescription.generalInstructions ?? '').isNotEmpty) ...[
                     pw.SizedBox(height: 12),
                     pw.Text(
@@ -224,7 +236,15 @@ class PrescriptionPdf {
 
   static pw.Widget _buildItemsTable(Prescription prescription) {
     return pw.TableHelper.fromTextArray(
-      headers: const ['#', 'Medicine', 'Dosage', 'Qty', 'Instructions'],
+      headers: const [
+        '#',
+        'Medicine',
+        'Dosage',
+        'Qty',
+        'Instructions',
+        'Price',
+        'Amount',
+      ],
       data: prescription.items.asMap().entries.map((entry) {
         final item = entry.value;
         return [
@@ -233,6 +253,8 @@ class PrescriptionPdf {
           item.dosage,
           '${item.quantity}',
           item.instructions ?? '-',
+          item.unitPrice.toStringAsFixed(2),
+          item.totalPrice.toStringAsFixed(2),
         ];
       }).toList(),
       headerStyle: pw.TextStyle(
@@ -243,13 +265,20 @@ class PrescriptionPdf {
       headerDecoration: const pw.BoxDecoration(color: PdfColors.blueGrey700),
       cellStyle: const pw.TextStyle(fontSize: 9),
       cellAlignment: pw.Alignment.centerLeft,
-      cellAlignments: {0: pw.Alignment.center, 3: pw.Alignment.center},
+      cellAlignments: {
+        0: pw.Alignment.center,
+        3: pw.Alignment.center,
+        5: pw.Alignment.centerRight,
+        6: pw.Alignment.centerRight,
+      },
       columnWidths: {
-        0: const pw.FixedColumnWidth(18),
-        1: const pw.FlexColumnWidth(2.2),
-        2: const pw.FlexColumnWidth(1.6),
-        3: const pw.FixedColumnWidth(24),
-        4: const pw.FlexColumnWidth(2),
+        0: const pw.FixedColumnWidth(16),
+        1: const pw.FlexColumnWidth(2),
+        2: const pw.FlexColumnWidth(1.4),
+        3: const pw.FixedColumnWidth(20),
+        4: const pw.FlexColumnWidth(1.6),
+        5: const pw.FlexColumnWidth(1),
+        6: const pw.FlexColumnWidth(1.1),
       },
       border: pw.TableBorder.all(color: PdfColors.grey400, width: 0.5),
     );

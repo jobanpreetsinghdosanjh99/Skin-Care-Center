@@ -256,7 +256,8 @@ class _PatientDetailPageState extends State<PatientDetailPage> {
                               ),
                               title: Text(
                                 '${prescription.items.length} item(s)'
-                                '${prescription.duration != null ? ' • ${prescription.duration}' : ''}',
+                                '${prescription.duration != null ? ' • ${prescription.duration}' : ''}'
+                                ' • ₹${prescription.totalAmount.toStringAsFixed(2)}',
                                 style: const TextStyle(
                                   fontWeight: FontWeight.w600,
                                 ),
@@ -287,7 +288,9 @@ class _PatientDetailPageState extends State<PatientDetailPage> {
                                       ),
                                       subtitle: Text(
                                         '${item.dosage} • Qty: ${item.quantity}'
-                                        '${item.instructions != null ? ' • ${item.instructions}' : ''}',
+                                        '${item.instructions != null ? ' • ${item.instructions}' : ''}'
+                                        ' • ₹${item.unitPrice.toStringAsFixed(2)} × ${item.quantity} = '
+                                        '₹${item.totalPrice.toStringAsFixed(2)}',
                                       ),
                                     ),
                                   )

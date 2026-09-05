@@ -20,6 +20,7 @@ class PrescriptionItemDraft {
     required this.dosage,
     required this.quantity,
     this.instructions,
+    this.unitPrice = 0,
   });
 
   final String? medicineId;
@@ -27,6 +28,9 @@ class PrescriptionItemDraft {
   final String dosage;
   final int quantity;
   final String? instructions;
+  final double unitPrice;
+
+  double get totalPrice => unitPrice * quantity;
 }
 
 class CreatePrescriptionPage extends StatefulWidget {
@@ -101,6 +105,7 @@ class _CreatePrescriptionPageState extends State<CreatePrescriptionPage> {
             dosage: item.dosage,
             quantity: item.quantity,
             instructions: item.instructions,
+            unitPrice: item.unitPrice,
           ),
         ),
       );
@@ -188,6 +193,7 @@ class _CreatePrescriptionPageState extends State<CreatePrescriptionPage> {
           instructions: _instructionsController.text.trim().isEmpty
               ? null
               : _instructionsController.text.trim().toSentenceCase,
+          unitPrice: _selectedMedicine!.pricePerUnit,
         ),
       );
       _selectedMedicine = null;
@@ -249,7 +255,8 @@ class _CreatePrescriptionPageState extends State<CreatePrescriptionPage> {
                       '${prescription.duration != null ? ' • ${prescription.duration}' : ''}\n'
                       '${prescription.createdAt.day.toString().padLeft(2, '0')}/'
                       '${prescription.createdAt.month.toString().padLeft(2, '0')}/'
-                      '${prescription.createdAt.year} • ${prescription.status.toTitleCase}',
+                      '${prescription.createdAt.year} • ${prescription.status.toTitleCase}'
+                      ' • ₹${prescription.totalAmount.toStringAsFixed(2)}',
                     ),
                     isThreeLine: true,
                     trailing: PrescriptionActions(
@@ -297,6 +304,7 @@ class _CreatePrescriptionPageState extends State<CreatePrescriptionPage> {
                 'dosage': item.dosage,
                 'quantity': item.quantity,
                 'instructions': item.instructions,
+                'unit_price': item.unitPrice,
               },
             )
             .toList(),
@@ -608,6 +616,36 @@ class _CreatePrescriptionPageState extends State<CreatePrescriptionPage> {
                         await _searchMedicines(value.text);
                         return _medicineOptions;
                       },
+                      optionsViewBuilder: (context, onSelected, options) {
+                        return Align(
+                          alignment: Alignment.topLeft,
+                          child: Material(
+                            elevation: 4,
+                            child: SizedBox(
+                              width: 460,
+                              child: ListView(
+                                shrinkWrap: true,
+                                padding: EdgeInsets.zero,
+                                children: options
+                                    .map(
+                                      (m) => ListTile(
+                                        dense: true,
+                                        title: Text(m.name.toTitleCase),
+                                        trailing: Text(
+                                          '₹${m.pricePerUnit.toStringAsFixed(2)}',
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                        onTap: () => onSelected(m),
+                                      ),
+                                    )
+                                    .toList(),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
                       onSelected: (medicine) =>
                           setState(() => _selectedMedicine = medicine),
                       fieldViewBuilder:
@@ -622,6 +660,16 @@ class _CreatePrescriptionPageState extends State<CreatePrescriptionPage> {
                             );
                           },
                     ),
+                    if (_selectedMedicine != null) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        'Price: ₹${_selectedMedicine!.pricePerUnit.toStringAsFixed(2)} per unit',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: AppTheme.primary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: AppSpacing.md),
                     DropdownButtonFormField<String>(
                       initialValue: _dosagePreset,
@@ -708,8 +756,11 @@ class _CreatePrescriptionPageState extends State<CreatePrescriptionPage> {
                       ),
                       subtitle: Text(
                         '${item.dosage} • Qty: ${item.quantity}'
-                        '${item.instructions != null ? ' • ${item.instructions}' : ''}',
+                        '${item.instructions != null ? ' • ${item.instructions}' : ''}'
+                        '\n₹${item.unitPrice.toStringAsFixed(2)} × ${item.quantity} = '
+                        '₹${item.totalPrice.toStringAsFixed(2)}',
                       ),
+                      isThreeLine: true,
                       trailing: IconButton(
                         icon: const Icon(
                           Icons.delete_outline,
@@ -721,6 +772,35 @@ class _CreatePrescriptionPageState extends State<CreatePrescriptionPage> {
                   );
                 }).toList(),
               ),
+            if (_items.isNotEmpty) ...[
+              const SizedBox(height: AppSpacing.sm),
+              Card(
+                color: AppTheme.background,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 14,
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Total Amount',
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      Text(
+                        '₹${_items.fold<double>(0, (sum, item) => sum + item.totalPrice).toStringAsFixed(2)}',
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(
+                              fontWeight: FontWeight.w700,
+                              color: AppTheme.primary,
+                            ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
             const SizedBox(height: AppSpacing.lg),
             if (_error != null) ...[
               ErrorBanner(message: _error!),

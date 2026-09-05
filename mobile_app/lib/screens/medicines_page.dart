@@ -310,8 +310,10 @@ class _MedicineCard extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             Text(
-              medicine.form.toTitleCase,
+              '${medicine.form.toTitleCase} • ₹${medicine.pricePerUnit.toStringAsFixed(2)}/unit',
               style: Theme.of(context).textTheme.bodySmall,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
             const Spacer(),
             Row(
@@ -404,6 +406,9 @@ class _AddMedicineDialogState extends State<_AddMedicineDialog> {
     text: widget.medicine?.name ?? '',
   );
   final _stockController = TextEditingController(text: '0');
+  late final _priceController = TextEditingController(
+    text: widget.medicine != null ? '${widget.medicine!.pricePerUnit}' : '',
+  );
   String? _form;
   bool _submitting = false;
   String? _error;
@@ -415,6 +420,14 @@ class _AddMedicineDialogState extends State<_AddMedicineDialog> {
     _form = widget.medicine?.form;
   }
 
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _stockController.dispose();
+    _priceController.dispose();
+    super.dispose();
+  }
+
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() {
@@ -422,17 +435,20 @@ class _AddMedicineDialogState extends State<_AddMedicineDialog> {
       _error = null;
     });
     try {
+      final price = double.tryParse(_priceController.text.trim()) ?? 0;
       if (_isEditing) {
         await MedicinesApi().update(
           widget.medicine!.id,
           name: _nameController.text.trim().toTitleCase,
           form: _form!,
+          pricePerUnit: price,
         );
       } else {
         await MedicinesApi().create(
           name: _nameController.text.trim().toTitleCase,
           form: _form!,
           currentStock: int.tryParse(_stockController.text.trim()) ?? 0,
+          pricePerUnit: price,
         );
       }
       if (mounted) Navigator.of(context).pop(true);
@@ -484,6 +500,23 @@ class _AddMedicineDialogState extends State<_AddMedicineDialog> {
                   decoration: const InputDecoration(labelText: 'Stock'),
                   keyboardType: TextInputType.number,
                 ),
+              const SizedBox(height: AppSpacing.md),
+              TextFormField(
+                controller: _priceController,
+                decoration: const InputDecoration(
+                  labelText: 'Price per Unit (₹)',
+                  hintText: 'e.g. 45.00',
+                ),
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                validator: (v) {
+                  if (v == null || v.trim().isEmpty) return null;
+                  return double.tryParse(v.trim()) == null
+                      ? 'Enter a valid number'
+                      : null;
+                },
+              ),
               if (_error != null) ...[
                 const SizedBox(height: AppSpacing.sm),
                 ErrorBanner(message: _error!),
