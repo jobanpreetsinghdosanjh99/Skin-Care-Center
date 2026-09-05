@@ -28,6 +28,8 @@ class AuthSession {
   /// Prescriptions view-only); every other role (admin, doctor, ...) keeps
   /// full access, matching the backend's permission checks.
   static bool get isManager => _role == 'manager';
+  static bool get isAdmin => _role == 'admin';
+  static bool get canViewSales => _role == 'admin' || _role == 'doctor';
 
   static void setToken(String? token) {
     _token = token;

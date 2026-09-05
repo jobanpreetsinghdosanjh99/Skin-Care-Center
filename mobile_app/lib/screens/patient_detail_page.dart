@@ -275,6 +275,10 @@ class _PatientDetailPageState extends State<PatientDetailPage> {
                                 prescription: prescription,
                                 dense: true,
                                 showRepeat: !AuthSession.isManager,
+                                // Managers can review the amount (shown in
+                                // the title above) but not print/export.
+                                showPrint: !AuthSession.isManager,
+                                showDownload: !AuthSession.isManager,
                               ),
                               children: prescription.items
                                   .map(

@@ -5,12 +5,11 @@ import '../services/prescriptions_api.dart';
 import '../theme/app_theme.dart';
 import '../utils/text_format.dart';
 import '../widgets/common.dart';
-import '../widgets/prescription_actions.dart';
 
 /// Read-only prescriptions list shown to restricted accounts (the
-/// 'manager' role) instead of [CreatePrescriptionPage] — they can browse,
-/// print, and download existing prescriptions, but the backend rejects
-/// creating/repeating one, so that action is hidden here entirely rather
+/// 'manager' role) instead of [CreatePrescriptionPage] — they can browse
+/// prescriptions and see their amounts, but cannot create, repeat, print
+/// or download them, so those actions are hidden here entirely rather
 /// than shown and then failing.
 class ViewPrescriptionsPage extends StatefulWidget {
   const ViewPrescriptionsPage({super.key});
@@ -43,7 +42,7 @@ class _ViewPrescriptionsPageState extends State<ViewPrescriptionsPage> {
           children: [
             const PageHeader(
               title: 'Prescriptions',
-              subtitle: 'View and print patient prescriptions',
+              subtitle: 'View patient prescriptions and their amounts',
             ),
             const SizedBox(height: AppSpacing.lg),
             Expanded(
@@ -76,12 +75,14 @@ class _ViewPrescriptionsPageState extends State<ViewPrescriptionsPage> {
                         separatorBuilder: (_, _) => const Divider(height: 1),
                         itemBuilder: (context, index) {
                           final prescription = prescriptions[index];
-                          return ListTile(
+                          return ExpansionTile(
                             leading: InitialsAvatar(
                               text: prescription.patientName,
+                              icon: Icons.description_outlined,
                             ),
                             title: Text(
-                              prescription.patientName.toTitleCase,
+                              '${prescription.patientName.toTitleCase} '
+                              '• ₹${prescription.totalAmount.toStringAsFixed(2)}',
                               style: const TextStyle(
                                 fontWeight: FontWeight.w600,
                               ),
@@ -93,14 +94,88 @@ class _ViewPrescriptionsPageState extends State<ViewPrescriptionsPage> {
                               '${prescription.createdAt.day.toString().padLeft(2, '0')}/'
                               '${prescription.createdAt.month.toString().padLeft(2, '0')}/'
                               '${prescription.createdAt.year} • '
-                              '${prescription.status.toTitleCase}',
+                              '${prescription.status.toTitleCase}'
+                              '${prescription.diseases.isNotEmpty ? ' • ${prescription.diseases.map((d) => d.shortName.toTitleCase).join(', ')}' : ''}'
+                              '${(prescription.diagnosisNotes ?? '').isNotEmpty ? ' • ${prescription.diagnosisNotes}' : ''}',
                             ),
-                            isThreeLine: true,
-                            trailing: PrescriptionActions(
-                              prescription: prescription,
-                              dense: true,
-                              showRepeat: false,
-                            ),
+                            children: [
+                              if (prescription.diseases.isNotEmpty)
+                                Padding(
+                                  padding: const EdgeInsets.fromLTRB(
+                                    AppSpacing.lg,
+                                    AppSpacing.sm,
+                                    AppSpacing.lg,
+                                    0,
+                                  ),
+                                  child: Align(
+                                    alignment: Alignment.centerLeft,
+                                    child: Text(
+                                      'Diagnosis: ${prescription.diseases.map((d) => d.shortName.toTitleCase).join(', ')}'
+                                      '${(prescription.diagnosisNotes ?? '').isNotEmpty ? ' — ${prescription.diagnosisNotes}' : ''}',
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              if ((prescription.generalInstructions ?? '')
+                                  .isNotEmpty)
+                                Padding(
+                                  padding: const EdgeInsets.fromLTRB(
+                                    AppSpacing.lg,
+                                    AppSpacing.sm,
+                                    AppSpacing.lg,
+                                    0,
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      const Text(
+                                        'Instructions:',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(prescription.generalInstructions!),
+                                    ],
+                                  ),
+                                ),
+                              if ((prescription.footerNote ?? '').isNotEmpty)
+                                Padding(
+                                  padding: const EdgeInsets.fromLTRB(
+                                    AppSpacing.lg,
+                                    AppSpacing.sm,
+                                    AppSpacing.lg,
+                                    0,
+                                  ),
+                                  child: Text(
+                                    prescription.footerNote!,
+                                    style: TextStyle(
+                                      color: Colors.grey[700],
+                                      fontStyle: FontStyle.italic,
+                                    ),
+                                  ),
+                                ),
+                              const SizedBox(height: AppSpacing.sm),
+                              for (final item in prescription.items)
+                                ListTile(
+                                  dense: true,
+                                  leading: const Icon(
+                                    Icons.medication,
+                                    size: 18,
+                                    color: AppTheme.secondary,
+                                  ),
+                                  title: Text(item.medicineName.toTitleCase),
+                                  subtitle: Text(
+                                    '${item.dosage} • Qty: ${item.quantity}'
+                                    '${item.instructions != null ? ' • ${item.instructions}' : ''}'
+                                    ' • ₹${item.unitPrice.toStringAsFixed(2)} × ${item.quantity} = '
+                                    '₹${item.totalPrice.toStringAsFixed(2)}',
+                                  ),
+                                ),
+                            ],
                           );
                         },
                       ),

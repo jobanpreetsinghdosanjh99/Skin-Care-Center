@@ -5,6 +5,7 @@ import 'screens/diseases_page.dart';
 import 'screens/login_page.dart';
 import 'screens/medicines_page.dart';
 import 'screens/patients_page.dart';
+import 'screens/sales_report_page.dart';
 import 'screens/settings_page.dart';
 import 'screens/view_prescriptions_page.dart';
 import 'services/api_client.dart';
@@ -98,12 +99,13 @@ class ClinicShell extends StatefulWidget {
 class _ClinicShellState extends State<ClinicShell> {
   int _selectedIndex = 0;
 
-  final _navigatorKeys = List.generate(6, (_) => GlobalKey<NavigatorState>());
+  final _navigatorKeys = List.generate(7, (_) => GlobalKey<NavigatorState>());
 
   /// 'manager' accounts don't get the Diseases tab, and see a read-only
   /// prescriptions list instead of the create-prescription form (the
   /// backend rejects them creating/repeating a prescription anyway).
   bool get _isManager => AuthSession.isManager;
+  bool get _canViewSales => AuthSession.canViewSales;
 
   /// Switches to the given tab (looked up by title so the index stays
   /// correct regardless of which tabs are hidden for the current role)
@@ -132,6 +134,7 @@ class _ClinicShellState extends State<ClinicShell> {
     const MedicinesPage(),
     if (!_isManager) const DiseasesPage(),
     _isManager ? const ViewPrescriptionsPage() : const CreatePrescriptionPage(),
+    if (_canViewSales) const SalesReportPage(),
     const SettingsPage(),
   ];
 
@@ -141,6 +144,7 @@ class _ClinicShellState extends State<ClinicShell> {
     'Medicines',
     if (!_isManager) 'Diseases',
     'Prescription',
+    if (_canViewSales) 'Sales',
     'Settings',
   ];
 
@@ -171,6 +175,12 @@ class _ClinicShellState extends State<ClinicShell> {
       selectedIcon: Icon(Icons.description),
       label: Text('Prescription'),
     ),
+    if (_canViewSales)
+      const NavigationRailDestination(
+        icon: Icon(Icons.insights_outlined),
+        selectedIcon: Icon(Icons.insights),
+        label: Text('Sales'),
+      ),
     const NavigationRailDestination(
       icon: Icon(Icons.settings_outlined),
       selectedIcon: Icon(Icons.settings),

@@ -4,7 +4,16 @@ from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.auth import get_current_user_id, require_roles
-from app.routers import auth, clinics, diseases, medicines, patients, prescriptions, settings
+from app.routers import (
+    auth,
+    clinics,
+    diseases,
+    medicines,
+    patients,
+    prescriptions,
+    reports,
+    settings,
+)
 
 
 @asynccontextmanager
@@ -47,6 +56,9 @@ app.include_router(medicines.router, dependencies=_auth_required)
 app.include_router(diseases.router, dependencies=_admin_only)
 app.include_router(prescriptions.router, dependencies=_auth_required)
 app.include_router(settings.router, dependencies=_auth_required)
+# Sales/revenue reporting is an owner-level view — 'manager' accounts can see
+# an individual prescription's amount but not clinic-wide takings.
+app.include_router(reports.router, dependencies=_admin_only)
 
 
 @app.get("/health", tags=["system"])

@@ -18,17 +18,24 @@ import '../utils/prescription_pdf.dart';
 /// list), where re-issuing a past prescription makes sense. It should be
 /// false right after creating a brand-new prescription, since "repeat"
 /// on something just created is meaningless.
+/// [showPrint] / [showDownload] let restricted roles (the 'manager' role)
+/// review a prescription — including its amount — without being able to
+/// print or export it.
 class PrescriptionActions extends StatelessWidget {
   const PrescriptionActions({
     super.key,
     required this.prescription,
     this.dense = false,
     this.showRepeat = true,
+    this.showPrint = true,
+    this.showDownload = true,
   });
 
   final Prescription prescription;
   final bool dense;
   final bool showRepeat;
+  final bool showPrint;
+  final bool showDownload;
 
   static final _clinicsApi = ClinicsApi();
   static final _patientsApi = PatientsApi();
@@ -99,20 +106,27 @@ class PrescriptionActions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Nothing to show at all (e.g. a manager, who may view amounts but not
+    // print/download/repeat) — collapse instead of rendering an empty row.
+    if (!showPrint && !showDownload && !showRepeat) {
+      return const SizedBox.shrink();
+    }
     if (dense) {
       return Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          IconButton(
-            onPressed: () => _print(context),
-            icon: const Icon(Icons.print_outlined, size: 20),
-            tooltip: 'Print',
-          ),
-          IconButton(
-            onPressed: () => _download(context),
-            icon: const Icon(Icons.download_outlined, size: 20),
-            tooltip: 'Download',
-          ),
+          if (showPrint)
+            IconButton(
+              onPressed: () => _print(context),
+              icon: const Icon(Icons.print_outlined, size: 20),
+              tooltip: 'Print',
+            ),
+          if (showDownload)
+            IconButton(
+              onPressed: () => _download(context),
+              icon: const Icon(Icons.download_outlined, size: 20),
+              tooltip: 'Download',
+            ),
           if (showRepeat)
             IconButton(
               onPressed: () => _repeat(context),
@@ -125,16 +139,18 @@ class PrescriptionActions extends StatelessWidget {
     return Wrap(
       spacing: 8,
       children: [
-        OutlinedButton.icon(
-          onPressed: () => _print(context),
-          icon: const Icon(Icons.print_outlined, size: 18),
-          label: const Text('Print'),
-        ),
-        OutlinedButton.icon(
-          onPressed: () => _download(context),
-          icon: const Icon(Icons.download_outlined, size: 18),
-          label: const Text('Download'),
-        ),
+        if (showPrint)
+          OutlinedButton.icon(
+            onPressed: () => _print(context),
+            icon: const Icon(Icons.print_outlined, size: 18),
+            label: const Text('Print'),
+          ),
+        if (showDownload)
+          OutlinedButton.icon(
+            onPressed: () => _download(context),
+            icon: const Icon(Icons.download_outlined, size: 18),
+            label: const Text('Download'),
+          ),
         if (showRepeat)
           OutlinedButton.icon(
             onPressed: () => _repeat(context),
