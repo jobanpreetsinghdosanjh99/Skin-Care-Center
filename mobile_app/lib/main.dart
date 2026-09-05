@@ -6,6 +6,7 @@ import 'screens/login_page.dart';
 import 'screens/medicines_page.dart';
 import 'screens/patients_page.dart';
 import 'screens/settings_page.dart';
+import 'screens/view_prescriptions_page.dart';
 import 'services/api_client.dart';
 import 'services/auth_api.dart';
 import 'services/quick_actions.dart';
@@ -99,21 +100,28 @@ class _ClinicShellState extends State<ClinicShell> {
 
   final _navigatorKeys = List.generate(6, (_) => GlobalKey<NavigatorState>());
 
-  /// Switches to the given tab and (for actions that open a dialog on
-  /// arrival) fires the matching [QuickActions] signal so the destination
-  /// page can auto-open its "Add" dialog once it's visible.
+  /// 'manager' accounts don't get the Diseases tab, and see a read-only
+  /// prescriptions list instead of the create-prescription form (the
+  /// backend rejects them creating/repeating a prescription anyway).
+  bool get _isManager => AuthSession.isManager;
+
+  /// Switches to the given tab (looked up by title so the index stays
+  /// correct regardless of which tabs are hidden for the current role)
+  /// and, for actions that open a dialog on arrival, fires the matching
+  /// [QuickActions] signal so the destination page can auto-open its
+  /// "Add" dialog once it's visible.
   void _handleQuickAction(String action) {
     switch (action) {
       case 'add_patient':
-        setState(() => _selectedIndex = 1);
+        setState(() => _selectedIndex = _titles.indexOf('Patients'));
         QuickActions.requestAddPatient();
         break;
       case 'add_medicine':
-        setState(() => _selectedIndex = 2);
+        setState(() => _selectedIndex = _titles.indexOf('Medicines'));
         QuickActions.requestAddMedicine();
         break;
       case 'new_prescription':
-        setState(() => _selectedIndex = 4);
+        setState(() => _selectedIndex = _titles.indexOf('Prescription'));
         break;
     }
   }
@@ -122,47 +130,48 @@ class _ClinicShellState extends State<ClinicShell> {
     _DashboardPage(onQuickAction: _handleQuickAction),
     const PatientsPage(),
     const MedicinesPage(),
-    const DiseasesPage(),
-    const CreatePrescriptionPage(),
+    if (!_isManager) const DiseasesPage(),
+    _isManager ? const ViewPrescriptionsPage() : const CreatePrescriptionPage(),
     const SettingsPage(),
   ];
 
-  static const _titles = [
+  List<String> get _titles => [
     'Dashboard',
     'Patients',
     'Medicines',
-    'Diseases',
+    if (!_isManager) 'Diseases',
     'Prescription',
     'Settings',
   ];
 
-  static const _items = <NavigationRailDestination>[
-    NavigationRailDestination(
+  List<NavigationRailDestination> get _items => [
+    const NavigationRailDestination(
       icon: Icon(Icons.dashboard_outlined),
       selectedIcon: Icon(Icons.dashboard),
       label: Text('Dashboard'),
     ),
-    NavigationRailDestination(
+    const NavigationRailDestination(
       icon: Icon(Icons.people_outline),
       selectedIcon: Icon(Icons.people),
       label: Text('Patients'),
     ),
-    NavigationRailDestination(
+    const NavigationRailDestination(
       icon: Icon(Icons.medication_outlined),
       selectedIcon: Icon(Icons.medication),
       label: Text('Medicines'),
     ),
-    NavigationRailDestination(
-      icon: Icon(Icons.biotech_outlined),
-      selectedIcon: Icon(Icons.biotech),
-      label: Text('Diseases'),
-    ),
-    NavigationRailDestination(
+    if (!_isManager)
+      const NavigationRailDestination(
+        icon: Icon(Icons.biotech_outlined),
+        selectedIcon: Icon(Icons.biotech),
+        label: Text('Diseases'),
+      ),
+    const NavigationRailDestination(
       icon: Icon(Icons.description_outlined),
       selectedIcon: Icon(Icons.description),
       label: Text('Prescription'),
     ),
-    NavigationRailDestination(
+    const NavigationRailDestination(
       icon: Icon(Icons.settings_outlined),
       selectedIcon: Icon(Icons.settings),
       label: Text('Settings'),
@@ -418,11 +427,12 @@ class _DashboardPage extends StatelessWidget {
                           label: 'Add Medicine',
                           onTap: () => onQuickAction('add_medicine'),
                         ),
-                        _QuickAction(
-                          icon: Icons.description_rounded,
-                          label: 'New Prescription',
-                          onTap: () => onQuickAction('new_prescription'),
-                        ),
+                        if (!AuthSession.isManager)
+                          _QuickAction(
+                            icon: Icons.description_rounded,
+                            label: 'New Prescription',
+                            onTap: () => onQuickAction('new_prescription'),
+                          ),
                       ],
                     ),
                   ],

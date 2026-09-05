@@ -1,6 +1,7 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from decimal import Decimal
 
+from app.auth import require_roles
 from app.clinics import get_or_create_default_clinic
 from app.db import get_connection
 from app.schemas.prescriptions import (
@@ -69,7 +70,14 @@ def list_prescriptions(patient_id: str | None = None) -> list[Prescription]:
         return [Prescription(**_load_prescription(conn, str(pid))) for pid in ids]
 
 
-@router.post("", response_model=Prescription, status_code=201)
+@router.post(
+    "",
+    response_model=Prescription,
+    status_code=201,
+    # 'manager' accounts can view/print/list prescriptions but must not be
+    # able to create (or repeat, which also POSTs here) a new one.
+    dependencies=[Depends(require_roles("admin", "doctor"))],
+)
 def create_prescription(payload: PrescriptionCreate) -> Prescription:
     with get_connection() as conn:
         clinic_id = get_or_create_default_clinic(conn)

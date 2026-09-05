@@ -613,193 +613,201 @@ class _SettingsPageState extends State<SettingsPage> {
               ),
             ),
             const SizedBox(height: AppSpacing.md),
-            _SettingsSection(
-              icon: Icons.local_hospital_rounded,
-              iconColor: AppTheme.secondary,
-              title: 'Clinic Management',
-              description:
-                  'Manage your clinic information. You can create a new clinic '
-                  'or update existing details.',
-              child: Wrap(
-                spacing: AppSpacing.sm,
-                runSpacing: AppSpacing.sm,
-                children: [
-                  FilledButton.icon(
-                    onPressed: () => _openClinicDialog(),
-                    icon: const Icon(Icons.add_business_rounded, size: 18),
-                    label: const Text('Create New Clinic'),
-                  ),
-                  OutlinedButton.icon(
-                    onPressed: _openClinicListDialog,
-                    icon: const Icon(Icons.list_alt_rounded, size: 18),
-                    label: const Text('Clinic List'),
-                  ),
-                ],
+            if (!AuthSession.isManager) ...[
+              _SettingsSection(
+                icon: Icons.local_hospital_rounded,
+                iconColor: AppTheme.secondary,
+                title: 'Clinic Management',
+                description:
+                    'Manage your clinic information. You can create a new clinic '
+                    'or update existing details.',
+                child: Wrap(
+                  spacing: AppSpacing.sm,
+                  runSpacing: AppSpacing.sm,
+                  children: [
+                    FilledButton.icon(
+                      onPressed: () => _openClinicDialog(),
+                      icon: const Icon(Icons.add_business_rounded, size: 18),
+                      label: const Text('Create New Clinic'),
+                    ),
+                    OutlinedButton.icon(
+                      onPressed: _openClinicListDialog,
+                      icon: const Icon(Icons.list_alt_rounded, size: 18),
+                      label: const Text('Clinic List'),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(height: AppSpacing.md),
-            _SettingsSection(
-              icon: Icons.notes_rounded,
-              iconColor: const Color(0xFF6D5DD3),
-              title: 'Prescription Footer Notes',
-              description:
-                  'Manage the notes printed at the bottom of every '
-                  'prescription. Notes are printed in order, top to bottom; '
-                  'inactive notes are hidden from printed prescriptions.',
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  FilledButton.icon(
-                    onPressed: () => _openFooterNoteDialog(),
-                    icon: const Icon(Icons.add_rounded, size: 18),
-                    label: const Text('Add Footer Note'),
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  FutureBuilder<List<FooterNote>>(
-                    future: _footerNotesFuture,
-                    builder: (context, snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return const Padding(
-                          padding: EdgeInsets.symmetric(vertical: 12),
-                          child: AppLoader(),
-                        );
-                      }
-                      final notes = snapshot.data ?? [];
-                      if (notes.isEmpty) {
-                        return Text(
-                          'No footer notes yet.',
-                          style: Theme.of(context).textTheme.bodySmall,
-                        );
-                      }
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: notes.asMap().entries.map((entry) {
-                          final index = entry.key;
-                          final note = entry.value;
-                          return Container(
-                            margin: const EdgeInsets.only(
-                              bottom: AppSpacing.sm,
-                            ),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 14,
-                              vertical: 6,
-                            ),
-                            decoration: BoxDecoration(
-                              color: AppTheme.background,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Icon(
-                                      Icons.sticky_note_2_outlined,
-                                      size: 16,
-                                      color: note.isActive
-                                          ? AppTheme.primary
-                                          : Colors.grey,
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Expanded(
-                                      child: Padding(
-                                        padding: const EdgeInsets.only(top: 2),
-                                        child: Text(
-                                          note.note,
-                                          style: TextStyle(
-                                            color: note.isActive
-                                                ? null
-                                                : Colors.grey,
-                                            decoration: note.isActive
-                                                ? null
-                                                : TextDecoration.lineThrough,
+              const SizedBox(height: AppSpacing.md),
+            ],
+            if (!AuthSession.isManager)
+              _SettingsSection(
+                icon: Icons.notes_rounded,
+                iconColor: const Color(0xFF6D5DD3),
+                title: 'Prescription Footer Notes',
+                description:
+                    'Manage the notes printed at the bottom of every '
+                    'prescription. Notes are printed in order, top to bottom; '
+                    'inactive notes are hidden from printed prescriptions.',
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    FilledButton.icon(
+                      onPressed: () => _openFooterNoteDialog(),
+                      icon: const Icon(Icons.add_rounded, size: 18),
+                      label: const Text('Add Footer Note'),
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    FutureBuilder<List<FooterNote>>(
+                      future: _footerNotesFuture,
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 12),
+                            child: AppLoader(),
+                          );
+                        }
+                        final notes = snapshot.data ?? [];
+                        if (notes.isEmpty) {
+                          return Text(
+                            'No footer notes yet.',
+                            style: Theme.of(context).textTheme.bodySmall,
+                          );
+                        }
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: notes.asMap().entries.map((entry) {
+                            final index = entry.key;
+                            final note = entry.value;
+                            return Container(
+                              margin: const EdgeInsets.only(
+                                bottom: AppSpacing.sm,
+                              ),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppTheme.background,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Icon(
+                                        Icons.sticky_note_2_outlined,
+                                        size: 16,
+                                        color: note.isActive
+                                            ? AppTheme.primary
+                                            : Colors.grey,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Padding(
+                                          padding: const EdgeInsets.only(
+                                            top: 2,
+                                          ),
+                                          child: Text(
+                                            note.note,
+                                            style: TextStyle(
+                                              color: note.isActive
+                                                  ? null
+                                                  : Colors.grey,
+                                              decoration: note.isActive
+                                                  ? null
+                                                  : TextDecoration.lineThrough,
+                                            ),
                                           ),
                                         ),
                                       ),
-                                    ),
-                                  ],
-                                ),
-                                Wrap(
-                                  alignment: WrapAlignment.end,
-                                  children: [
-                                    IconButton(
-                                      onPressed: index == 0
-                                          ? null
-                                          : () => _moveFooterNote(
-                                              notes,
-                                              index,
-                                              -1,
-                                            ),
-                                      icon: const Icon(
-                                        Icons.arrow_upward_rounded,
-                                        size: 16,
+                                    ],
+                                  ),
+                                  Wrap(
+                                    alignment: WrapAlignment.end,
+                                    children: [
+                                      IconButton(
+                                        onPressed: index == 0
+                                            ? null
+                                            : () => _moveFooterNote(
+                                                notes,
+                                                index,
+                                                -1,
+                                              ),
+                                        icon: const Icon(
+                                          Icons.arrow_upward_rounded,
+                                          size: 16,
+                                        ),
+                                        tooltip: 'Move up',
+                                        visualDensity: VisualDensity.compact,
                                       ),
-                                      tooltip: 'Move up',
-                                      visualDensity: VisualDensity.compact,
-                                    ),
-                                    IconButton(
-                                      onPressed: index == notes.length - 1
-                                          ? null
-                                          : () => _moveFooterNote(
-                                              notes,
-                                              index,
-                                              1,
-                                            ),
-                                      icon: const Icon(
-                                        Icons.arrow_downward_rounded,
-                                        size: 16,
+                                      IconButton(
+                                        onPressed: index == notes.length - 1
+                                            ? null
+                                            : () => _moveFooterNote(
+                                                notes,
+                                                index,
+                                                1,
+                                              ),
+                                        icon: const Icon(
+                                          Icons.arrow_downward_rounded,
+                                          size: 16,
+                                        ),
+                                        tooltip: 'Move down',
+                                        visualDensity: VisualDensity.compact,
                                       ),
-                                      tooltip: 'Move down',
-                                      visualDensity: VisualDensity.compact,
-                                    ),
-                                    IconButton(
-                                      onPressed: () =>
-                                          _toggleFooterNoteActive(note),
-                                      icon: Icon(
-                                        note.isActive
-                                            ? Icons.visibility_outlined
-                                            : Icons.visibility_off_outlined,
-                                        size: 16,
+                                      IconButton(
+                                        onPressed: () =>
+                                            _toggleFooterNoteActive(note),
+                                        icon: Icon(
+                                          note.isActive
+                                              ? Icons.visibility_outlined
+                                              : Icons.visibility_off_outlined,
+                                          size: 16,
+                                        ),
+                                        tooltip: note.isActive
+                                            ? 'Hide from print'
+                                            : 'Show on print',
+                                        visualDensity: VisualDensity.compact,
                                       ),
-                                      tooltip: note.isActive
-                                          ? 'Hide from print'
-                                          : 'Show on print',
-                                      visualDensity: VisualDensity.compact,
-                                    ),
-                                    IconButton(
-                                      onPressed: () =>
-                                          _openFooterNoteDialog(existing: note),
-                                      icon: const Icon(
-                                        Icons.edit_outlined,
-                                        size: 16,
+                                      IconButton(
+                                        onPressed: () => _openFooterNoteDialog(
+                                          existing: note,
+                                        ),
+                                        icon: const Icon(
+                                          Icons.edit_outlined,
+                                          size: 16,
+                                        ),
+                                        tooltip: 'Edit',
+                                        visualDensity: VisualDensity.compact,
                                       ),
-                                      tooltip: 'Edit',
-                                      visualDensity: VisualDensity.compact,
-                                    ),
-                                    IconButton(
-                                      onPressed: () =>
-                                          _confirmDeleteFooterNote(note),
-                                      icon: const Icon(
-                                        Icons.delete_outline,
-                                        size: 16,
-                                        color: AppTheme.danger,
+                                      IconButton(
+                                        onPressed: () =>
+                                            _confirmDeleteFooterNote(note),
+                                        icon: const Icon(
+                                          Icons.delete_outline,
+                                          size: 16,
+                                          color: AppTheme.danger,
+                                        ),
+                                        tooltip: 'Delete',
+                                        visualDensity: VisualDensity.compact,
                                       ),
-                                      tooltip: 'Delete',
-                                      visualDensity: VisualDensity.compact,
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          );
-                        }).toList(),
-                      );
-                    },
-                  ),
-                ],
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            );
+                          }).toList(),
+                        );
+                      },
+                    ),
+                  ],
+                ),
               ),
-            ),
             const SizedBox(height: AppSpacing.md),
             _SettingsSection(
               icon: Icons.logout_rounded,

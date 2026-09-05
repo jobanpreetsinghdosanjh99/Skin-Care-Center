@@ -17,13 +17,24 @@ class AuthSession {
   AuthSession._();
 
   static String? _token;
+  static String? _role;
 
   static String? get token => _token;
+  static String? get role => _role;
 
   static bool get isLoggedIn => _token != null && _token!.isNotEmpty;
 
+  /// 'manager' accounts get restricted access (Patients + Medicines fully,
+  /// Prescriptions view-only); every other role (admin, doctor, ...) keeps
+  /// full access, matching the backend's permission checks.
+  static bool get isManager => _role == 'manager';
+
   static void setToken(String? token) {
     _token = token;
+  }
+
+  static void setRole(String? role) {
+    _role = role;
   }
 
   /// Fired whenever the session becomes unauthenticated (explicit logout or

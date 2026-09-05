@@ -1,0 +1,13 @@
+-- Adds a 'manager' role and seeds an admin + manager account, in
+-- addition to the existing default 'doctor' account, so the clinic can
+-- have staff with restricted access:
+--   - admin / doctor: full access to everything (unchanged behavior).
+--   - manager: Patients and Medicines (full use), and Prescriptions in
+--     view-only mode (cannot create/repeat a prescription).
+--
+-- ALTER TYPE ... ADD VALUE cannot run inside a transaction block together
+-- with other statements in some Postgres versions, so it's kept isolated
+-- from the INSERTs below (which run in the app's own migration runner,
+-- each ALTER/INSERT as its own statement is fine over a single connection
+-- with autocommit-per-statement execution).
+ALTER TYPE user_role ADD VALUE IF NOT EXISTS 'manager';

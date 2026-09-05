@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/patient.dart';
 import '../models/prescription.dart';
+import '../services/api_client.dart';
 import '../services/patients_api.dart';
 import '../services/prescriptions_api.dart';
 import '../theme/app_theme.dart';
@@ -153,14 +154,16 @@ class _PatientDetailPageState extends State<PatientDetailPage> {
                               icon: const Icon(Icons.delete_outline, size: 18),
                               label: const Text('Delete'),
                             ),
-                            FilledButton.icon(
-                              onPressed: () => _openCreatePrescription(patient),
-                              icon: const Icon(
-                                Icons.receipt_long_rounded,
-                                size: 18,
+                            if (!AuthSession.isManager)
+                              FilledButton.icon(
+                                onPressed: () =>
+                                    _openCreatePrescription(patient),
+                                icon: const Icon(
+                                  Icons.receipt_long_rounded,
+                                  size: 18,
+                                ),
+                                label: const Text('New Prescription'),
                               ),
-                              label: const Text('New Prescription'),
-                            ),
                           ],
                         ),
                       ),
@@ -271,6 +274,7 @@ class _PatientDetailPageState extends State<PatientDetailPage> {
                               trailing: PrescriptionActions(
                                 prescription: prescription,
                                 dense: true,
+                                showRepeat: !AuthSession.isManager,
                               ),
                               children: prescription.items
                                   .map(

@@ -1,7 +1,8 @@
 import uuid
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
+from app.auth import require_roles
 from app.clinics import get_or_create_default_clinic
 from app.db import get_connection
 from app.schemas.settings import (
@@ -15,6 +16,11 @@ from app.schemas.settings import (
 from app.users import get_or_create_default_user, hash_password
 
 router = APIRouter(prefix="/settings", tags=["settings"])
+
+# Clinic-wide configuration (clinic details, prescription footer notes) is
+# admin/doctor-only. Personal account actions (/me, changing your own
+# password) and reading footer notes stay open to any authenticated role.
+_admin_only = [Depends(require_roles("admin", "doctor"))]
 
 
 def _get_or_create_default_user(conn, clinic_id: uuid.UUID) -> dict:
@@ -42,7 +48,7 @@ def get_clinic_settings() -> ClinicSettings:
         return ClinicSettings(**row)
 
 
-@router.put("/clinic", response_model=ClinicSettings)
+@router.put("/clinic", response_model=ClinicSettings, dependencies=_admin_only)
 def update_clinic_settings(payload: ClinicSettingsUpdate) -> ClinicSettings:
     with get_connection() as conn:
         clinic_id = get_or_create_default_clinic(conn)
@@ -68,7 +74,9 @@ def list_footer_notes() -> list[FooterNote]:
         return [FooterNote(**row) for row in rows]
 
 
-@router.post("/footer-notes", response_model=FooterNote, status_code=201)
+@router.post(
+    "/footer-notes", response_model=FooterNote, status_code=201, dependencies=_admin_only
+)
 def add_footer_note(payload: FooterNoteCreate) -> FooterNote:
     with get_connection() as conn:
         clinic_id = get_or_create_default_clinic(conn)
@@ -83,7 +91,9 @@ def add_footer_note(payload: FooterNoteCreate) -> FooterNote:
         return FooterNote(**row)
 
 
-@router.put("/footer-notes/{note_id}", response_model=FooterNote)
+@router.put(
+    "/footer-notes/{note_id}", response_model=FooterNote, dependencies=_admin_only
+)
 def update_footer_note(note_id: str, payload: FooterNoteUpdate) -> FooterNote:
     with get_connection() as conn:
         clinic_id = get_or_create_default_clinic(conn)
@@ -101,7 +111,7 @@ def update_footer_note(note_id: str, payload: FooterNoteUpdate) -> FooterNote:
         return FooterNote(**row)
 
 
-@router.delete("/footer-notes/{note_id}", status_code=204)
+@router.delete("/footer-notes/{note_id}", status_code=204, dependencies=_admin_only)
 def delete_footer_note(note_id: str) -> None:
     with get_connection() as conn:
         clinic_id = get_or_create_default_clinic(conn)

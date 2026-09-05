@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'api_client.dart';
 
 const _tokenPrefsKey = 'skc_auth_token';
+const _rolePrefsKey = 'skc_auth_role';
 
 class LoggedInUser {
   LoggedInUser({
@@ -45,11 +46,14 @@ class AuthApi {
             as Map<String, dynamic>;
 
     final token = data['access_token'] as String;
+    final user = LoggedInUser.fromJson(data);
     AuthSession.setToken(token);
+    AuthSession.setRole(user.role);
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_tokenPrefsKey, token);
+    await prefs.setString(_rolePrefsKey, user.role);
 
-    return LoggedInUser.fromJson(data);
+    return user;
   }
 
   /// Restores a previously stored session (if any) into [AuthSession] so the
@@ -60,12 +64,15 @@ class AuthApi {
     final token = prefs.getString(_tokenPrefsKey);
     if (token == null || token.isEmpty) return false;
     AuthSession.setToken(token);
+    AuthSession.setRole(prefs.getString(_rolePrefsKey));
     return true;
   }
 
   Future<void> logout() async {
     AuthSession.setToken(null);
+    AuthSession.setRole(null);
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_tokenPrefsKey);
+    await prefs.remove(_rolePrefsKey);
   }
 }

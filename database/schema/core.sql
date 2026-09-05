@@ -1,6 +1,6 @@
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
-CREATE TYPE user_role AS ENUM ('admin', 'doctor', 'receptionist', 'inventory_staff');
+CREATE TYPE user_role AS ENUM ('admin', 'doctor', 'manager', 'receptionist', 'inventory_staff');
 CREATE TYPE gender AS ENUM ('male', 'female', 'other', 'prefer_not_to_say');
 CREATE TYPE medicine_form AS ENUM (
   'cream', 'soap', 'tablet', 'capsule', 'lotion', 'sunscreen', 'face_wash',

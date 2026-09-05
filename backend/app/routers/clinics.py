@@ -1,9 +1,15 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
+from app.auth import require_roles
 from app.db import get_connection
 from app.schemas.clinics import Clinic, ClinicCreate, ClinicUpdate
 
 router = APIRouter(prefix="/clinics", tags=["clinics"])
+
+# Viewing clinics (active clinic name/details for headers, PDFs, etc.) is
+# open to any authenticated role, but creating/editing/deleting/switching
+# clinics is an admin/doctor-only administrative action.
+_admin_only = [Depends(require_roles("admin", "doctor"))]
 
 
 @router.get("/active", response_model=Clinic)
@@ -28,7 +34,7 @@ def list_clinics() -> list[Clinic]:
         return [Clinic(**row) for row in rows]
 
 
-@router.post("", response_model=Clinic, status_code=201)
+@router.post("", response_model=Clinic, status_code=201, dependencies=_admin_only)
 def create_clinic(payload: ClinicCreate) -> Clinic:
     with get_connection() as conn:
         row = conn.execute(
@@ -42,7 +48,7 @@ def create_clinic(payload: ClinicCreate) -> Clinic:
         return Clinic(**row)
 
 
-@router.post("/{clinic_id}/activate", response_model=Clinic)
+@router.post("/{clinic_id}/activate", response_model=Clinic, dependencies=_admin_only)
 def activate_clinic(clinic_id: str) -> Clinic:
     with get_connection() as conn:
         exists = conn.execute(
@@ -63,7 +69,7 @@ def activate_clinic(clinic_id: str) -> Clinic:
         return Clinic(**row)
 
 
-@router.put("/{clinic_id}", response_model=Clinic)
+@router.put("/{clinic_id}", response_model=Clinic, dependencies=_admin_only)
 def update_clinic(clinic_id: str, payload: ClinicUpdate) -> Clinic:
     with get_connection() as conn:
         row = conn.execute(
@@ -80,7 +86,7 @@ def update_clinic(clinic_id: str, payload: ClinicUpdate) -> Clinic:
         return Clinic(**row)
 
 
-@router.delete("/{clinic_id}", status_code=204)
+@router.delete("/{clinic_id}", status_code=204, dependencies=_admin_only)
 def delete_clinic(clinic_id: str) -> None:
     with get_connection() as conn:
         row = conn.execute(
