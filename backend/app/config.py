@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     database_url: str = "postgresql://postgres:postgres@localhost:5432/skin_care_centre"
     jwt_secret: str = "change-me-in-production"
     default_clinic_id: str | None = None
+    frontend_origin_regex: str = r"http://(localhost|127\.0\.0\.1)(:\d+)?"
 
 
 settings = Settings()

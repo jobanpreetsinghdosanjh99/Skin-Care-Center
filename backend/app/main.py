@@ -29,10 +29,9 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    # Flutter's debug web server picks a random localhost port on every
-    # `flutter run`, so match any localhost/127.0.0.1 origin instead of a
-    # fixed allow-list.
-    allow_origin_regex=r"http://(localhost|127\.0\.0\.1)(:\d+)?",
+    # Flutter uses a random localhost port during development; in production,
+    # the frontend origin is controlled through an environment variable.
+    allow_origin_regex=settings.frontend_origin_regex,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
