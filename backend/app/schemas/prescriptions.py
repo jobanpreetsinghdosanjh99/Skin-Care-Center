@@ -25,6 +25,12 @@ class PrescriptionItem(PrescriptionItemCreate):
     sort_order: int
 
 
+class PrescriptionDiseaseInfo(BaseModel):
+    id: uuid.UUID
+    short_name: str
+    full_name: str
+
+
 class PrescriptionCreate(BaseModel):
     patient_id: uuid.UUID
     duration: str | None = None
@@ -38,6 +44,8 @@ class Prescription(BaseModel):
     id: uuid.UUID
     clinic_id: uuid.UUID
     patient_id: uuid.UUID
+    patient_name: str
+    patient_number: str
     status: PrescriptionStatus
     duration: str | None
     diagnosis_notes: str | None
@@ -46,3 +54,4 @@ class Prescription(BaseModel):
     created_at: datetime
     finalized_at: datetime | None
     items: list[PrescriptionItem] = Field(default_factory=list)
+    diseases: list[PrescriptionDiseaseInfo] = Field(default_factory=list)

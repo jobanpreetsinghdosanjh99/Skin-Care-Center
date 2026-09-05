@@ -21,12 +21,14 @@ class PrescriptionsApi {
     required String patientId,
     String? duration,
     String? diagnosisNotes,
+    List<String> diseaseIds = const [],
     required List<Map<String, dynamic>> items,
   }) async {
     final data = await _client.post('/prescriptions', {
       'patient_id': patientId,
       'duration': duration,
       'diagnosis_notes': diagnosisNotes,
+      'disease_ids': diseaseIds,
       'items': items,
     }, expected: 201);
     return Prescription.fromJson(data as Map<String, dynamic>);

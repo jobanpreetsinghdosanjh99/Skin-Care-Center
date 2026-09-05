@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/patient.dart';
 import '../services/clinic_scope.dart';
 import '../services/patients_api.dart';
+import '../services/quick_actions.dart';
 import '../theme/app_theme.dart';
 import '../utils/text_format.dart';
 import '../widgets/common.dart';
@@ -28,12 +29,22 @@ class _PatientsPageState extends State<PatientsPage> {
     super.initState();
     _patientsFuture = _api.list();
     ClinicScope.epoch.addListener(_refresh);
+    QuickActions.addPatientRequested.addListener(_onAddPatientRequested);
   }
 
   @override
   void dispose() {
     ClinicScope.epoch.removeListener(_refresh);
+    QuickActions.addPatientRequested.removeListener(_onAddPatientRequested);
     super.dispose();
+  }
+
+  void _onAddPatientRequested() {
+    // Defer to the next frame so the tab-switch triggered by the dashboard
+    // quick action finishes building before we push the dialog's route.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _openAddPatientDialog();
+    });
   }
 
   void _refresh() {
@@ -73,7 +84,8 @@ class _PatientsPageState extends State<PatientsPage> {
         title: const Text('Delete Patient'),
         content: Text(
           'Are you sure you want to delete "${patient.fullName.toTitleCase}"? '
-          'This cannot be undone.',
+          'This will also permanently delete all of their prescription '
+          'history. This cannot be undone.',
         ),
         actions: [
           TextButton(

@@ -2,14 +2,25 @@ from fastapi import APIRouter, HTTPException
 
 from app.clinics import get_or_create_default_clinic
 from app.db import get_connection
-from app.schemas.prescriptions import Prescription, PrescriptionCreate, PrescriptionItem
+from app.schemas.prescriptions import (
+    Prescription,
+    PrescriptionCreate,
+    PrescriptionDiseaseInfo,
+    PrescriptionItem,
+)
 
 router = APIRouter(prefix="/prescriptions", tags=["prescriptions"])
 
 
 def _load_prescription(conn, prescription_id: str) -> dict | None:
     row = conn.execute(
-        "SELECT * FROM prescriptions WHERE id = %s", (prescription_id,)
+        """
+        SELECT p.*, pt.full_name AS patient_name, pt.patient_number AS patient_number
+        FROM prescriptions p
+        JOIN patients pt ON pt.id = p.patient_id
+        WHERE p.id = %s
+        """,
+        (prescription_id,),
     ).fetchone()
     if not row:
         return None
@@ -21,7 +32,21 @@ def _load_prescription(conn, prescription_id: str) -> dict | None:
         """,
         (prescription_id,),
     ).fetchall()
-    return {**row, "items": [PrescriptionItem(**item) for item in items]}
+    diseases = conn.execute(
+        """
+        SELECT d.id, d.short_name, d.full_name
+        FROM prescription_diseases pd
+        JOIN diseases d ON d.id = pd.disease_id
+        WHERE pd.prescription_id = %s
+        ORDER BY d.short_name
+        """,
+        (prescription_id,),
+    ).fetchall()
+    return {
+        **row,
+        "items": [PrescriptionItem(**item) for item in items],
+        "diseases": [PrescriptionDiseaseInfo(**disease) for disease in diseases],
+    }
 
 
 @router.get("", response_model=list[Prescription])

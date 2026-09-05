@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 
+import '../models/disease.dart';
 import '../models/medicine.dart';
 import '../models/patient.dart';
 import '../models/prescription.dart';
+import '../services/diseases_api.dart';
 import '../services/medicines_api.dart';
 import '../services/patients_api.dart';
 import '../services/prescriptions_api.dart';
@@ -49,10 +51,15 @@ class _CreatePrescriptionPageState extends State<CreatePrescriptionPage> {
   final _patientsApi = PatientsApi();
   final _medicinesApi = MedicinesApi();
   final _prescriptionsApi = PrescriptionsApi();
+  final _diseasesApi = DiseasesApi();
 
   final _patientSearchController = TextEditingController();
   Patient? _selectedPatient;
   List<Patient> _patientResults = [];
+
+  final _diagnosisNotesController = TextEditingController();
+  final _selectedDiseases = <Disease>[];
+  List<Disease> _diseaseOptions = [];
 
   String? _duration;
   bool _customDuration = false;
@@ -80,6 +87,13 @@ class _CreatePrescriptionPageState extends State<CreatePrescriptionPage> {
         _customDuration = true;
         _customDurationController.text = _duration!;
       }
+      _diagnosisNotesController.text = repeat.diagnosisNotes ?? '';
+      _selectedDiseases.addAll(
+        repeat.diseases.map(
+          (d) =>
+              Disease(id: d.id, shortName: d.shortName, fullName: d.fullName),
+        ),
+      );
       _items.addAll(
         repeat.items.map(
           (item) => PrescriptionItemDraft(
@@ -123,6 +137,38 @@ class _CreatePrescriptionPageState extends State<CreatePrescriptionPage> {
   Future<void> _searchMedicines(String query) async {
     final results = await _medicinesApi.list(search: query);
     setState(() => _medicineOptions = results);
+  }
+
+  Future<void> _searchDiseases(String query) async {
+    if (query.trim().isEmpty) {
+      setState(() => _diseaseOptions = []);
+      return;
+    }
+    final results = await _diseasesApi.list(shortName: query);
+    setState(() => _diseaseOptions = results);
+  }
+
+  void _addDisease(Disease disease) {
+    if (_selectedDiseases.any((d) => d.id == disease.id)) return;
+    setState(() {
+      _selectedDiseases.add(disease);
+      _diseaseOptions = [];
+    });
+  }
+
+  void _removeDisease(Disease disease) {
+    setState(() => _selectedDiseases.removeWhere((d) => d.id == disease.id));
+  }
+
+  @override
+  void dispose() {
+    _patientSearchController.dispose();
+    _diagnosisNotesController.dispose();
+    _customDurationController.dispose();
+    _dosageController.dispose();
+    _quantityController.dispose();
+    _instructionsController.dispose();
+    super.dispose();
   }
 
   void _addItem() {
@@ -192,21 +238,20 @@ class _CreatePrescriptionPageState extends State<CreatePrescriptionPage> {
                   final prescription = prescriptions[index];
                   return ListTile(
                     contentPadding: EdgeInsets.zero,
-                    leading: const CircleAvatar(
-                      backgroundColor: AppTheme.primaryLight,
-                      foregroundColor: Colors.white,
-                      child: Icon(Icons.description, size: 18),
-                    ),
+                    leading: InitialsAvatar(text: prescription.patientName),
                     title: Text(
-                      '${prescription.items.length} item(s)'
-                      '${prescription.duration != null ? ' • ${prescription.duration}' : ''}',
+                      prescription.patientName.toTitleCase,
                       style: const TextStyle(fontWeight: FontWeight.w600),
                     ),
                     subtitle: Text(
+                      'Patient #${prescription.patientNumber} • '
+                      '${prescription.items.length} item(s)'
+                      '${prescription.duration != null ? ' • ${prescription.duration}' : ''}\n'
                       '${prescription.createdAt.day.toString().padLeft(2, '0')}/'
                       '${prescription.createdAt.month.toString().padLeft(2, '0')}/'
                       '${prescription.createdAt.year} • ${prescription.status.toTitleCase}',
                     ),
+                    isThreeLine: true,
                     trailing: PrescriptionActions(
                       prescription: prescription,
                       dense: true,
@@ -240,6 +285,10 @@ class _CreatePrescriptionPageState extends State<CreatePrescriptionPage> {
       final saved = await _prescriptionsApi.create(
         patientId: _selectedPatient!.id,
         duration: _effectiveDuration,
+        diagnosisNotes: _diagnosisNotesController.text.trim().isEmpty
+            ? null
+            : _diagnosisNotesController.text.trim(),
+        diseaseIds: _selectedDiseases.map((d) => d.id).toList(),
         items: _items
             .map(
               (item) => {
@@ -257,6 +306,8 @@ class _CreatePrescriptionPageState extends State<CreatePrescriptionPage> {
           _items.clear();
           _selectedPatient = null;
           _patientSearchController.clear();
+          _selectedDiseases.clear();
+          _diagnosisNotesController.clear();
         });
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -298,20 +349,37 @@ class _CreatePrescriptionPageState extends State<CreatePrescriptionPage> {
 
   @override
   Widget build(BuildContext context) {
+    final canPop = Navigator.of(context).canPop();
     return SafeArea(
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(AppSpacing.xl),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            PageHeader(
-              title: 'Create Prescription',
-              subtitle: 'Search a patient, then add medicines to prescribe',
-              action: OutlinedButton.icon(
-                onPressed: _openPrescriptionsListDialog,
-                icon: const Icon(Icons.receipt_long_rounded, size: 18),
-                label: const Text('View All Prescriptions'),
-              ),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (canPop) ...[
+                  IconButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    icon: const Icon(Icons.arrow_back_rounded),
+                    tooltip: 'Back',
+                  ),
+                  const SizedBox(width: 4),
+                ],
+                Expanded(
+                  child: PageHeader(
+                    title: 'Create Prescription',
+                    subtitle:
+                        'Search a patient, then add medicines to prescribe',
+                    action: OutlinedButton.icon(
+                      onPressed: _openPrescriptionsListDialog,
+                      icon: const Icon(Icons.receipt_long_rounded, size: 18),
+                      label: const Text('View All Prescriptions'),
+                    ),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: AppSpacing.lg),
             Card(
@@ -407,6 +475,77 @@ class _CreatePrescriptionPageState extends State<CreatePrescriptionPage> {
                           ),
                         ),
                     ],
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: AppSpacing.lg),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.biotech_rounded,
+                          size: 18,
+                          color: AppTheme.primary,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Diagnosis',
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    if (_selectedDiseases.isNotEmpty) ...[
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: _selectedDiseases
+                            .map(
+                              (disease) => Chip(
+                                label: Text(disease.shortName.toTitleCase),
+                                onDeleted: () => _removeDisease(disease),
+                              ),
+                            )
+                            .toList(),
+                      ),
+                      const SizedBox(height: 12),
+                    ],
+                    Autocomplete<Disease>(
+                      displayStringForOption: (d) => d.shortName.toTitleCase,
+                      optionsBuilder: (value) async {
+                        await _searchDiseases(value.text);
+                        return _diseaseOptions;
+                      },
+                      onSelected: _addDisease,
+                      fieldViewBuilder:
+                          (context, controller, focusNode, onSubmit) {
+                            return TextField(
+                              controller: controller,
+                              focusNode: focusNode,
+                              decoration: const InputDecoration(
+                                labelText: 'Add Disease',
+                                prefixIcon: Icon(Icons.search),
+                                hintText: 'Search a disease...',
+                              ),
+                            );
+                          },
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    TextField(
+                      controller: _diagnosisNotesController,
+                      decoration: const InputDecoration(
+                        labelText: 'Diagnosis Notes (optional)',
+                        hintText: 'e.g. Mild acne on forehead and cheeks',
+                      ),
+                      textCapitalization: TextCapitalization.sentences,
+                      maxLines: 2,
+                    ),
                   ],
                 ),
               ),

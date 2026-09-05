@@ -58,7 +58,8 @@ class _PatientDetailPageState extends State<PatientDetailPage> {
         title: const Text('Delete Patient'),
         content: Text(
           'Are you sure you want to delete "${patient.fullName.toTitleCase}"? '
-          'This cannot be undone.',
+          'This will also permanently delete all of their prescription '
+          'history. This cannot be undone.',
         ),
         actions: [
           TextButton(
@@ -261,6 +262,7 @@ class _PatientDetailPageState extends State<PatientDetailPage> {
                                 ),
                               ),
                               subtitle: Text(
+                                '${prescription.diseases.isNotEmpty ? '${prescription.diseases.map((d) => d.shortName.toTitleCase).join(', ')} • ' : ''}'
                                 '${prescription.createdAt.day.toString().padLeft(2, '0')}/'
                                 '${prescription.createdAt.month.toString().padLeft(2, '0')}/'
                                 '${prescription.createdAt.year} • '

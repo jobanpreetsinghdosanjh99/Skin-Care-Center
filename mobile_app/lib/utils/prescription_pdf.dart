@@ -47,51 +47,81 @@ class PrescriptionPdf {
         margin: const pw.EdgeInsets.all(24),
         theme: pw.ThemeData.withFont(fontFallback: [gurmukhiFont]),
         build: (context) {
-          return pw.Column(
-            crossAxisAlignment: pw.CrossAxisAlignment.start,
+          return pw.Stack(
             children: [
-              _buildHeader(clinic),
-              pw.SizedBox(height: 10),
-              pw.Divider(thickness: 1.2, color: PdfColors.blueGrey700),
-              pw.SizedBox(height: 8),
-              _buildPatientBlock(patient, dateStr, prescription),
-              pw.SizedBox(height: 12),
-              pw.Text(
-                'Rx',
-                style: pw.TextStyle(
-                  fontSize: 20,
-                  fontWeight: pw.FontWeight.bold,
-                  color: PdfColors.blueGrey900,
-                ),
-              ),
-              pw.SizedBox(height: 6),
-              _buildItemsTable(prescription),
-              if ((prescription.generalInstructions ?? '').isNotEmpty) ...[
-                pw.SizedBox(height: 12),
-                pw.Text(
-                  'Instructions:',
-                  style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
-                ),
-                pw.Text(prescription.generalInstructions!),
-              ],
-              pw.Spacer(),
-              pw.Divider(thickness: 0.6, color: PdfColors.grey400),
-              if ((prescription.footerNote ?? '').isNotEmpty)
-                pw.Text(
-                  prescription.footerNote!,
+              pw.Positioned.fill(
+                child: pw.Watermark.text(
+                  clinic.name,
+                  angle: 0.6,
                   style: pw.TextStyle(
-                    fontSize: 9,
-                    fontStyle: pw.FontStyle.italic,
-                    color: PdfColors.grey700,
+                    color: PdfColors.grey300,
+                    fontWeight: pw.FontWeight.bold,
+                    fontSize: 36,
                   ),
                 ),
-              pw.SizedBox(height: 4),
-              pw.Align(
-                alignment: pw.Alignment.centerRight,
-                child: pw.Text(
-                  'Signature: ______________________',
-                  style: const pw.TextStyle(fontSize: 10),
-                ),
+              ),
+              pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  _buildHeader(clinic),
+                  pw.SizedBox(height: 10),
+                  pw.Divider(thickness: 1.2, color: PdfColors.blueGrey700),
+                  pw.SizedBox(height: 8),
+                  _buildPatientBlock(patient, dateStr, prescription),
+                  pw.SizedBox(height: 12),
+                  if (prescription.diseases.isNotEmpty ||
+                      (prescription.diagnosisNotes ?? '').isNotEmpty) ...[
+                    pw.Text(
+                      'Diagnosis: '
+                      '${prescription.diseases.map((d) => d.shortName).join(', ')}'
+                      '${prescription.diseases.isNotEmpty && (prescription.diagnosisNotes ?? '').isNotEmpty ? ' — ' : ''}'
+                      '${prescription.diagnosisNotes ?? ''}',
+                      style: pw.TextStyle(
+                        fontSize: 10,
+                        fontWeight: pw.FontWeight.bold,
+                        color: PdfColors.blueGrey800,
+                      ),
+                    ),
+                    pw.SizedBox(height: 8),
+                  ],
+                  pw.Text(
+                    'Rx',
+                    style: pw.TextStyle(
+                      fontSize: 20,
+                      fontWeight: pw.FontWeight.bold,
+                      color: PdfColors.blueGrey900,
+                    ),
+                  ),
+                  pw.SizedBox(height: 6),
+                  _buildItemsTable(prescription),
+                  if ((prescription.generalInstructions ?? '').isNotEmpty) ...[
+                    pw.SizedBox(height: 12),
+                    pw.Text(
+                      'Instructions:',
+                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                    ),
+                    pw.Text(prescription.generalInstructions!),
+                  ],
+                  pw.Spacer(),
+                  pw.Divider(thickness: 0.6, color: PdfColors.grey400),
+                  if ((prescription.footerNote ?? '').isNotEmpty)
+                    pw.Text(
+                      prescription.footerNote!,
+                      style: pw.TextStyle(
+                        fontSize: 9,
+                        fontStyle: pw.FontStyle.italic,
+                        color: PdfColors.grey700,
+                      ),
+                    ),
+                  pw.SizedBox(height: 4),
+                  pw.Align(
+                    alignment: pw.Alignment.centerRight,
+                    child: pw.Text(
+                      'Signature: ______________________',
+                      style: const pw.TextStyle(fontSize: 10),
+                    ),
+                  ),
+                ],
               ),
             ],
           );

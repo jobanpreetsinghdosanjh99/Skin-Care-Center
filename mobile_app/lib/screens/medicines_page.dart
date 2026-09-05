@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/medicine.dart';
 import '../services/clinic_scope.dart';
 import '../services/medicines_api.dart';
+import '../services/quick_actions.dart';
 import '../theme/app_theme.dart';
 import '../utils/text_format.dart';
 import '../widgets/common.dart';
@@ -38,12 +39,22 @@ class _MedicinesPageState extends State<MedicinesPage> {
     super.initState();
     _future = _api.list();
     ClinicScope.epoch.addListener(_refresh);
+    QuickActions.addMedicineRequested.addListener(_onAddMedicineRequested);
   }
 
   @override
   void dispose() {
     ClinicScope.epoch.removeListener(_refresh);
+    QuickActions.addMedicineRequested.removeListener(_onAddMedicineRequested);
     super.dispose();
+  }
+
+  void _onAddMedicineRequested() {
+    // Defer to the next frame so the tab-switch triggered by the dashboard
+    // quick action finishes building before we push the dialog's route.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _openAddMedicineDialog();
+    });
   }
 
   void _refresh() {

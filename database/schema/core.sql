@@ -89,7 +89,7 @@ CREATE INDEX stock_movements_medicine_created_idx ON stock_movements (medicine_i
 CREATE TABLE prescriptions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   clinic_id UUID NOT NULL REFERENCES clinics(id),
-  patient_id UUID NOT NULL REFERENCES patients(id),
+  patient_id UUID NOT NULL REFERENCES patients(id) ON DELETE CASCADE,
   created_by UUID REFERENCES users(id),
   status prescription_status NOT NULL DEFAULT 'draft',
   diagnosis_notes TEXT,

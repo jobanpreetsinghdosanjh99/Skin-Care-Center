@@ -8,6 +8,7 @@ import 'screens/patients_page.dart';
 import 'screens/settings_page.dart';
 import 'services/api_client.dart';
 import 'services/auth_api.dart';
+import 'services/quick_actions.dart';
 import 'theme/app_theme.dart';
 import 'widgets/common.dart';
 
@@ -98,13 +99,32 @@ class _ClinicShellState extends State<ClinicShell> {
 
   final _navigatorKeys = List.generate(6, (_) => GlobalKey<NavigatorState>());
 
-  static const _pages = <Widget>[
-    _DashboardPage(),
-    PatientsPage(),
-    MedicinesPage(),
-    DiseasesPage(),
-    CreatePrescriptionPage(),
-    SettingsPage(),
+  /// Switches to the given tab and (for actions that open a dialog on
+  /// arrival) fires the matching [QuickActions] signal so the destination
+  /// page can auto-open its "Add" dialog once it's visible.
+  void _handleQuickAction(String action) {
+    switch (action) {
+      case 'add_patient':
+        setState(() => _selectedIndex = 1);
+        QuickActions.requestAddPatient();
+        break;
+      case 'add_medicine':
+        setState(() => _selectedIndex = 2);
+        QuickActions.requestAddMedicine();
+        break;
+      case 'new_prescription':
+        setState(() => _selectedIndex = 4);
+        break;
+    }
+  }
+
+  List<Widget> get _pages => <Widget>[
+    _DashboardPage(onQuickAction: _handleQuickAction),
+    const PatientsPage(),
+    const MedicinesPage(),
+    const DiseasesPage(),
+    const CreatePrescriptionPage(),
+    const SettingsPage(),
   ];
 
   static const _titles = [
@@ -154,6 +174,7 @@ class _ClinicShellState extends State<ClinicShell> {
     final width = MediaQuery.sizeOf(context).width;
     final isMobile = width < 700;
     final isExtended = width > 900;
+    final pages = _pages;
 
     final body = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -163,12 +184,12 @@ class _ClinicShellState extends State<ClinicShell> {
           child: IndexedStack(
             index: _selectedIndex,
             children: [
-              for (var i = 0; i < _pages.length; i++)
+              for (var i = 0; i < pages.length; i++)
                 Navigator(
                   key: _navigatorKeys[i],
                   onGenerateRoute: (settings) => MaterialPageRoute(
                     settings: settings,
-                    builder: (context) => _pages[i],
+                    builder: (context) => pages[i],
                   ),
                 ),
             ],
@@ -324,7 +345,9 @@ class _PageFrame extends StatelessWidget {
 }
 
 class _DashboardPage extends StatelessWidget {
-  const _DashboardPage();
+  const _DashboardPage({required this.onQuickAction});
+
+  final void Function(String action) onQuickAction;
 
   @override
   Widget build(BuildContext context) {
@@ -384,18 +407,21 @@ class _DashboardPage extends StatelessWidget {
                     Wrap(
                       spacing: AppSpacing.md,
                       runSpacing: AppSpacing.md,
-                      children: const [
+                      children: [
                         _QuickAction(
                           icon: Icons.person_add_alt_1_rounded,
                           label: 'Add Patient',
+                          onTap: () => onQuickAction('add_patient'),
                         ),
                         _QuickAction(
                           icon: Icons.medication_rounded,
                           label: 'Add Medicine',
+                          onTap: () => onQuickAction('add_medicine'),
                         ),
                         _QuickAction(
                           icon: Icons.description_rounded,
                           label: 'New Prescription',
+                          onTap: () => onQuickAction('new_prescription'),
                         ),
                       ],
                     ),
@@ -503,10 +529,15 @@ class _SystemStatusCard extends StatelessWidget {
 }
 
 class _QuickAction extends StatelessWidget {
-  const _QuickAction({required this.icon, required this.label});
+  const _QuickAction({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
 
   final IconData icon;
   final String label;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -515,7 +546,7 @@ class _QuickAction extends StatelessWidget {
       borderRadius: BorderRadius.circular(12),
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
-        onTap: () {},
+        onTap: onTap,
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: Row(
