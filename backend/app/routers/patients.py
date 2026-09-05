@@ -43,9 +43,9 @@ def create_patient(payload: PatientCreate) -> Patient:
         row = conn.execute(
             """
             INSERT INTO patients (
-                clinic_id, patient_number, full_name, age_years, date_of_birth,
-                gender, phone, address, allergies, medical_history
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                clinic_id, patient_number, full_name, age_years, age_months,
+                date_of_birth, gender, phone, address, allergies, medical_history
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             RETURNING *
             """,
             (
@@ -53,6 +53,7 @@ def create_patient(payload: PatientCreate) -> Patient:
                 patient_number,
                 payload.full_name,
                 payload.age_years,
+                payload.age_months,
                 payload.date_of_birth,
                 payload.gender.value,
                 payload.phone,
@@ -79,15 +80,16 @@ def update_patient(patient_id: str, payload: PatientUpdate) -> Patient:
         row = conn.execute(
             """
             UPDATE patients SET
-                full_name = %s, age_years = %s, date_of_birth = %s, gender = %s,
-                phone = %s, address = %s, allergies = %s, medical_history = %s,
-                updated_at = now()
+                full_name = %s, age_years = %s, age_months = %s, date_of_birth = %s,
+                gender = %s, phone = %s, address = %s, allergies = %s,
+                medical_history = %s, updated_at = now()
             WHERE id = %s
             RETURNING *
             """,
             (
                 payload.full_name,
                 payload.age_years,
+                payload.age_months,
                 payload.date_of_birth,
                 payload.gender.value,
                 payload.phone,

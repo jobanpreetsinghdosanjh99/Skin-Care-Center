@@ -15,6 +15,7 @@ class Gender(str, Enum):
 class PatientBase(BaseModel):
     full_name: str = Field(min_length=1, max_length=200)
     age_years: int | None = Field(default=None, ge=0, le=150)
+    age_months: int | None = Field(default=None, ge=0, le=11)
     date_of_birth: date | None = None
     gender: Gender = Gender.prefer_not_to_say
     phone: str = Field(min_length=5, max_length=20)

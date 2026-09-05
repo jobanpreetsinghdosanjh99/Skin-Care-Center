@@ -201,8 +201,7 @@ class PrescriptionPdf {
                 ),
               ),
               pw.Text(
-                '${patient.ageYears != null ? '${patient.ageYears} yrs' : ''}'
-                '${patient.ageYears != null ? ' / ' : ''}${patient.gender}',
+                '${patient.ageLabel != '-' ? '${patient.ageLabel} / ' : ''}${patient.gender}',
                 style: const pw.TextStyle(fontSize: 9),
               ),
               pw.Text(

@@ -40,6 +40,7 @@ CREATE TABLE patients (
   full_name TEXT NOT NULL,
   date_of_birth DATE,
   age_years SMALLINT CHECK (age_years >= 0 AND age_years <= 150),
+  age_months SMALLINT CHECK (age_months >= 0 AND age_months <= 11),
   gender gender NOT NULL DEFAULT 'prefer_not_to_say',
   phone TEXT NOT NULL,
   address TEXT,

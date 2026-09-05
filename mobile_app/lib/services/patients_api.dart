@@ -25,6 +25,7 @@ class PatientsApi {
     required String fullName,
     required String phone,
     int? ageYears,
+    int? ageMonths,
     String gender = 'prefer_not_to_say',
     String? address,
   }) async {
@@ -32,6 +33,7 @@ class PatientsApi {
       'full_name': fullName,
       'phone': phone,
       'age_years': ageYears,
+      'age_months': ageMonths,
       'gender': gender,
       'address': address,
     }, expected: 201);
@@ -43,6 +45,7 @@ class PatientsApi {
     required String fullName,
     required String phone,
     int? ageYears,
+    int? ageMonths,
     String gender = 'prefer_not_to_say',
     String? address,
   }) async {
@@ -50,6 +53,7 @@ class PatientsApi {
       'full_name': fullName,
       'phone': phone,
       'age_years': ageYears,
+      'age_months': ageMonths,
       'gender': gender,
       'address': address,
     });

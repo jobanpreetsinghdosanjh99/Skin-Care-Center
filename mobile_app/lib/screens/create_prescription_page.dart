@@ -123,10 +123,10 @@ class _CreatePrescriptionPageState extends State<CreatePrescriptionPage> {
   ];
 
   static const _dosagePresets = [
-    '0-0-1 (Night)',
+    '1-0-1 (Morning And Night)',
     '1-0-0 (Morning)',
-    '1-1-1 (Thrice a Day)',
-    '1-0-1 (Alternate Day)',
+    '0-0-1 (Night)',
+    '1-0-1-0 (Alternate Day)',
     'Custom',
   ];
 
@@ -611,7 +611,8 @@ class _CreatePrescriptionPageState extends State<CreatePrescriptionPage> {
                     ],
                     const SizedBox(height: AppSpacing.md),
                     Autocomplete<Medicine>(
-                      displayStringForOption: (m) => m.name.toTitleCase,
+                      displayStringForOption: (m) =>
+                          '${m.form.toTitleCase} - ${m.name.toTitleCase}',
                       optionsBuilder: (value) async {
                         await _searchMedicines(value.text);
                         return _medicineOptions;
@@ -630,7 +631,18 @@ class _CreatePrescriptionPageState extends State<CreatePrescriptionPage> {
                                     .map(
                                       (m) => ListTile(
                                         dense: true,
-                                        title: Text(m.name.toTitleCase),
+                                        title: Text(
+                                          '${m.form.toTitleCase} - '
+                                          '${m.name.toTitleCase}',
+                                        ),
+                                        subtitle: Text(
+                                          'Stock: ${m.currentStock}',
+                                          style: TextStyle(
+                                            color: m.currentStock <= 0
+                                                ? AppTheme.danger
+                                                : Colors.grey[700],
+                                          ),
+                                        ),
                                         trailing: Text(
                                           '₹${m.pricePerUnit.toStringAsFixed(2)}',
                                           style: const TextStyle(
@@ -663,9 +675,12 @@ class _CreatePrescriptionPageState extends State<CreatePrescriptionPage> {
                     if (_selectedMedicine != null) ...[
                       const SizedBox(height: 4),
                       Text(
-                        'Price: ₹${_selectedMedicine!.pricePerUnit.toStringAsFixed(2)} per unit',
+                        'Price: ₹${_selectedMedicine!.pricePerUnit.toStringAsFixed(2)} per unit'
+                        ' • Stock: ${_selectedMedicine!.currentStock}',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppTheme.primary,
+                          color: _selectedMedicine!.currentStock <= 0
+                              ? AppTheme.danger
+                              : AppTheme.primary,
                           fontWeight: FontWeight.w600,
                         ),
                       ),

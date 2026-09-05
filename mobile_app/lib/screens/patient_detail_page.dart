@@ -178,9 +178,7 @@ class _PatientDetailPageState extends State<PatientDetailPage> {
                         _InfoTile(
                           icon: Icons.cake_outlined,
                           label: 'Age',
-                          value: patient.ageYears != null
-                              ? '${patient.ageYears} yrs'
-                              : '-',
+                          value: patient.ageLabel,
                         ),
                         _InfoTile(
                           icon: Icons.wc_rounded,
@@ -376,6 +374,9 @@ class _PatientEditDialogState extends State<_PatientEditDialog> {
   late final _ageController = TextEditingController(
     text: widget.patient.ageYears?.toString() ?? '',
   );
+  late final _ageMonthsController = TextEditingController(
+    text: widget.patient.ageMonths?.toString() ?? '',
+  );
   late final _addressController = TextEditingController(
     text: widget.patient.address ?? '',
   );
@@ -397,6 +398,7 @@ class _PatientEditDialogState extends State<_PatientEditDialog> {
         fullName: _nameController.text.trim(),
         phone: _phoneController.text.trim(),
         ageYears: int.tryParse(_ageController.text.trim()),
+        ageMonths: int.tryParse(_ageMonthsController.text.trim()),
         gender: _gender,
         address: _addressController.text.trim().isEmpty
             ? null
@@ -437,10 +439,36 @@ class _PatientEditDialogState extends State<_PatientEditDialog> {
                     (v == null || v.trim().isEmpty) ? 'Required' : null,
               ),
               const SizedBox(height: 12),
-              TextFormField(
-                controller: _ageController,
-                decoration: const InputDecoration(labelText: 'Age'),
-                keyboardType: TextInputType.number,
+              Row(
+                children: [
+                  Expanded(
+                    child: TextFormField(
+                      controller: _ageController,
+                      decoration: const InputDecoration(
+                        labelText: 'Age (Years)',
+                      ),
+                      keyboardType: TextInputType.number,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: TextFormField(
+                      controller: _ageMonthsController,
+                      decoration: const InputDecoration(
+                        labelText: 'Age (Months)',
+                      ),
+                      keyboardType: TextInputType.number,
+                      validator: (v) {
+                        if (v == null || v.trim().isEmpty) return null;
+                        final months = int.tryParse(v.trim());
+                        if (months == null || months < 0 || months > 11) {
+                          return '0-11';
+                        }
+                        return null;
+                      },
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(

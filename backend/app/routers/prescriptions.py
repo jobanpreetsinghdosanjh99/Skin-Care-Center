@@ -144,21 +144,27 @@ def create_prescription(payload: PrescriptionCreate) -> Prescription:
                     "SELECT current_stock FROM medicines WHERE id = %s",
                     (str(item.medicine_id),),
                 ).fetchone()
-                if medicine and medicine["current_stock"] >= item.quantity:
-                    conn.execute(
-                        """
-                        INSERT INTO stock_movements (medicine_id, movement_type, quantity_delta, note)
-                        VALUES (%s, 'prescription', %s, %s)
-                        """,
-                        (str(item.medicine_id), -item.quantity, f"Prescription {prescription['id']}"),
-                    )
-                    conn.execute(
-                        """
-                        UPDATE medicines SET current_stock = current_stock - %s, updated_at = now()
-                        WHERE id = %s
-                        """,
-                        (item.quantity, str(item.medicine_id)),
-                    )
+                if medicine:
+                    # Deduct as much as is actually available so stock always
+                    # reflects usage, instead of silently skipping the
+                    # deduction entirely when the prescribed quantity exceeds
+                    # what's on hand.
+                    deduct = min(medicine["current_stock"], item.quantity)
+                    if deduct > 0:
+                        conn.execute(
+                            """
+                            INSERT INTO stock_movements (medicine_id, movement_type, quantity_delta, note)
+                            VALUES (%s, 'prescription', %s, %s)
+                            """,
+                            (str(item.medicine_id), -deduct, f"Prescription {prescription['id']}"),
+                        )
+                        conn.execute(
+                            """
+                            UPDATE medicines SET current_stock = current_stock - %s, updated_at = now()
+                            WHERE id = %s
+                            """,
+                            (deduct, str(item.medicine_id)),
+                        )
 
         return Prescription(**_load_prescription(conn, str(prescription["id"])))
 
